@@ -1,0 +1,21 @@
+{
+  "info": {
+    "name": "LAW.AI API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        { "name": "Login", "request": { "method": "POST", "url": "/api/auth/login" } },
+        { "name": "Register", "request": { "method": "POST", "url": "/api/auth/register" } }
+      ]
+    },
+    {
+      "name": "Contracts",
+      "item": [
+        { "name": "Create Contract", "request": { "method": "POST", "url": "/api/contract" } }
+      ]
+    }
+  ]
+}

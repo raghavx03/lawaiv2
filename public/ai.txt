@@ -1,0 +1,96 @@
+LAW.AI - Indian Legal AI Platform for Advocates and Law Firms
+
+LAW.AI is an AI-powered legal technology platform designed specifically for Indian lawyers, advocates, and law firms. It helps legal professionals work more efficiently by providing intelligent tools for their daily practice.
+
+CORE FEATURES:
+
+1. AI Legal Assistant
+   - Ask legal questions in Hindi, English, or Hinglish
+   - Get answers based on Indian law: IPC, CrPC, CPC, Evidence Act, NI Act, Constitution
+   - Cite relevant sections and landmark judgments
+   - Trained on Indian legal procedures and court practices
+
+2. Case Tracker (CNR Tracking)
+   - Track court cases using CNR (Case Number Record) numbers
+   - Get real-time updates on case status
+   - View next hearing dates and case history
+   - Works with Supreme Court, High Courts, and District Courts
+
+3. Legal Document Generator
+   - Generate legal documents: Rental Agreements, NDAs, Legal Notices, Affidavits
+   - Customized for Indian law and jurisdiction
+   - Professional formatting ready for court submission
+
+4. Judgment Summarizer
+   - Upload court judgments and get AI-powered summaries
+   - Extract key issues, arguments, and final orders
+   - Identify relevant sections and precedents
+
+5. Legal Research
+   - Search Indian laws, acts, and case laws
+   - Find relevant Supreme Court and High Court judgments
+   - Get section-wise explanations with practical interpretations
+
+6. Client CRM
+   - Manage client information and appointments
+   - Track case progress and deadlines
+   - Set reminders for hearings and filings
+
+7. Legal News
+   - Stay updated with latest legal developments in India
+   - News from LiveLaw, Bar & Bench, and official sources
+   - Filter by practice area and court
+
+SUPPORTED LANGUAGES:
+- English
+- Hindi
+- Hinglish (Mixed Hindi-English)
+
+TARGET AUDIENCE:
+- Advocates and Lawyers in India
+- Law Firms
+- Legal Consultants
+- Law Students
+- Corporate Legal Teams
+
+INDIAN LAW COVERAGE:
+- Indian Penal Code (IPC)
+- Code of Criminal Procedure (CrPC)
+- Code of Civil Procedure (CPC)
+- Indian Evidence Act
+- Negotiable Instruments Act (Section 138)
+- Constitution of India
+- Consumer Protection Act
+- Motor Vehicles Act
+- Hindu Marriage Act, Hindu Succession Act
+- Companies Act, 2013
+- Arbitration and Conciliation Act
+- RERA (Real Estate Regulation Act)
+- IT Act, 2000 (Cyber Laws)
+- Labour Laws
+- Family Laws
+
+COURT COVERAGE:
+- Supreme Court of India
+- All High Courts (Delhi, Bombay, Madras, Calcutta, etc.)
+- District Courts
+- Consumer Forums
+- Tribunals (NCLT, NCLAT, NGT, CAT)
+- Family Courts
+- Labour Courts
+
+PRICING:
+- 7-day Free Trial (Full Access)
+- Starter Plan: Free (Limited Features)
+- Pro Plan: ₹999/month (Unlimited Access)
+
+CONTACT:
+- Email: ragsproai@gmail.com
+- Phone: +91 8826073013
+- Website: https://lawai.in
+
+DEVELOPED BY:
+RAGSPRO (https://ragspro.com)
+Founder: Raghav Shah
+
+LAW.AI - Your AI-Powered Legal Partner in India

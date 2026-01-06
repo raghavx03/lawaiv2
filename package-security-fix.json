@@ -1,0 +1,12 @@
+{
+  "name": "law-ai-security-fixes",
+  "version": "1.0.0",
+  "scripts": {
+    "security-audit": "npm audit --audit-level=moderate",
+    "security-fix": "npm audit fix --force",
+    "update-deps": "npm update"
+  },
+  "overrides": {
+    "pnpm": ">=9.15.0"
+  }
+}

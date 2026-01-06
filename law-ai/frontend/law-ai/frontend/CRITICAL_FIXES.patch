@@ -1,0 +1,143 @@
+diff --git a/src/app/api/chat-enhanced/route.ts b/src/app/api/chat-enhanced/route.ts
+index 1234567..abcdefg 100644
+--- a/src/app/api/chat-enhanced/route.ts
++++ b/src/app/api/chat-enhanced/route.ts
+@@ -45,6 +45,13 @@ export const POST = createGuardedHandler(
+         }, { status: 403 })
+       }
+ 
++      // Validate OpenAI API key
++      if (!env.OPENAI_API_KEY || env.OPENAI_API_KEY.includes('placeholder') || env.OPENAI_API_KEY.includes('your_')) {
++        return NextResponse.json({
++          ok: false,
++          code: 'API_KEY_MISSING',
++          message: 'AI service not configured. Please contact administrator.'
++        }, { status: 503 })
++      }
++
+       // Check OpenAI rate limits
+       if (!checkOpenAIRateLimit(userId, userProfile.plan, sanitizedMessage.length)) {
+         return NextResponse.json({
+
+diff --git a/src/app/api/upload/route.ts b/src/app/api/upload/route.ts
+index 1234567..abcdefg 100644
+--- a/src/app/api/upload/route.ts
++++ b/src/app/api/upload/route.ts
+@@ -1,5 +1,6 @@
+ import { NextRequest, NextResponse } from 'next/server'
+ import { createGuardedHandler } from '@/lib/security/guards'
+ import { sanitizeInput } from '@/lib/security/input-sanitizer'
++import path from 'path'
+ 
+ const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+@@ -20,6 +21,12 @@ export const POST = createGuardedHandler(
+     if (!ALLOWED_TYPES.includes(file.type)) {
+       return NextResponse.json({ ok: false, error: 'Invalid file type' }, { status: 400 })
+     }
++    
++    // Prevent path traversal
++    const safeName = path.basename(sanitizeInput(file.name))
++    if (safeName !== file.name || safeName.includes('..') || safeName.includes('/') || safeName.includes('\\')) {
++      return NextResponse.json({ ok: false, error: 'Invalid filename' }, { status: 400 })
++    }
+     
+     // Read file content
+     const buffer = await file.arrayBuffer()
+@@ -30,7 +37,7 @@ export const POST = createGuardedHandler(
+     const uploadedFile = await prisma.uploadedFile.create({
+       data: {
+         userId: auth.user.id,
+-        filename: sanitizeInput(file.name),
++        filename: safeName,
+         fileType: file.type,
+         fileSize: file.size,
+         content: content.substring(0, 50000), // Limit content size
+
+diff --git a/src/lib/openai-rate-limit.ts b/src/lib/openai-rate-limit.ts
+index 1234567..abcdefg 100644
+--- a/src/lib/openai-rate-limit.ts
++++ b/src/lib/openai-rate-limit.ts
+@@ -16,7 +16,10 @@ const requestCache = new TTLCache<number>()
+ const tokenCache = new TTLCache<number>()
+ 
+-export function checkOpenAIRateLimit(userId: string, plan: string, estimatedTokens: number = 100): boolean {
++export function checkOpenAIRateLimit(userId: string, plan: string, estimatedTokens: number = 100): { 
++  allowed: boolean; 
++  retryAfter?: number; 
++} {
+   const config = RATE_LIMITS[plan] || RATE_LIMITS.FREE
+   
+   // Check request rate limit
+@@ -24,7 +27,10 @@ export function checkOpenAIRateLimit(userId: string, plan: string, estimatedTok
+   const currentRequests = requestCache.get(requestKey) || 0
+   
+   if (currentRequests >= config.requests) {
+-    return false
++    return { 
++      allowed: false, 
++      retryAfter: Math.ceil(config.windowMs / 1000) 
++    }
+   }
+   
+   // Check token rate limit
+@@ -32,7 +38,10 @@ export function checkOpenAIRateLimit(userId: string, plan: string, estimatedTok
+   const currentTokens = tokenCache.get(tokenKey) || 0
+   
+   if (currentTokens + estimatedTokens > config.tokensPerMinute) {
+-    return false
++    return { 
++      allowed: false, 
++      retryAfter: Math.ceil(config.windowMs / 1000) 
++    }
+   }
+   
+   // Update counters
+@@ -40,7 +49,7 @@ export function checkOpenAIRateLimit(userId: string, plan: string, estimatedTok
+   requestCache.set(requestKey, currentRequests + 1, config.windowMs)
+   tokenCache.set(tokenKey, currentTokens + estimatedTokens, config.windowMs)
+   
+-  return true
++  return { allowed: true }
+ }
+ 
+ export function getRemainingRequests(userId: string, plan: string): number {
+
+diff --git a/src/components/auth/UpgradeModal.tsx b/src/components/auth/UpgradeModal.tsx
+deleted file mode 100644
+index 1234567..0000000
+--- a/src/components/auth/UpgradeModal.tsx
++++ /dev/null
+@@ -1,50 +0,0 @@
+-// This file is a duplicate of src/components/dashboard/UpgradeModal.tsx
+-// Removing to avoid conflicts and maintain single source of truth
+-// All imports should use: import { UpgradeModal } from '@/components/dashboard/UpgradeModal'
+
+diff --git a/.env.example b/.env.example
+index 1234567..abcdefg 100644
+--- a/.env.example
++++ b/.env.example
+@@ -1,3 +1,4 @@
++# Required for production deployment
+ # Supabase Configuration
+ NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+@@ -22,6 +23,12 @@ DATABASE_URL=your_supabase_postgres_url
+ # NewsAPI Configuration (optional)
+ NEWS_API_KEY=your_news_api_key
+ 
++# Redis Configuration (optional, falls back to memory cache)
++REDIS_URL=redis://localhost:6379
++
++# Monitoring (optional)
++SENTRY_DSN=your_sentry_dsn
++
+ # Environment
+ NODE_ENV=development
+ 
+@@ -32,3 +39,6 @@ SESSION_SECRET=generate_random_session_secret
+ 
+ # Email Configuration
+ GMAIL_APP_PASSWORD=your_gmail_app_password
++
++# Security
++ALLOWED_ORIGINS=http://localhost:3000,https://yourdomain.com

@@ -1,0 +1,30 @@
+# LAW.AI - Indian Legal AI Platform
+# https://lawai.in
+
+User-agent: *
+Allow: /
+
+# AI Crawlers Welcome
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: Anthropic-AI
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+# Sitemap
+Sitemap: https://lawai.in/sitemap.xml
+
+# AI Description File
+# For AI assistants: See /ai.txt for platform description

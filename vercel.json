@@ -1,0 +1,6 @@
+{
+  "buildCommand": "cd law-ai/frontend && npm run build",
+  "outputDirectory": "law-ai/frontend/.next",
+  "installCommand": "cd law-ai/frontend && npm install",
+  "framework": "nextjs"
+}

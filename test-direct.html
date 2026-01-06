@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Direct API Test</title>
+</head>
+<body>
+    <h1>Direct API Test</h1>
+    <button onclick="testAPI()">Test Sale Deed Generation</button>
+    <div id="result"></div>
+
+    <script>
+        async function testAPI() {
+            const testData = {
+                type: 'sale',
+                inputs: {
+                    sellerName: 'Rajesh Kumar',
+                    buyerName: 'Priya Sharma',
+                    propertyDescription: 'Flat 301, Green Valley Apartments',
+                    saleAmount: '5000000',
+                    advanceAmount: '500000'
+                }
+            };
+
+            try {
+                const response = await fetch('/api/test-generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testData)
+                });
+
+                const data = await response.json();
+                document.getElementById('result').innerHTML = 
+                    '<h2>Result:</h2><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                document.getElementById('result').innerHTML = 
+                    '<h2>Error:</h2><pre>' + error.message + '</pre>';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,252 @@
+/* Performance Optimizations */
+
+/* GPU acceleration for animations */
+.gpu-accelerated {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Optimize repaints */
+.optimize-repaint {
+  contain: layout style paint;
+}
+
+/* Lazy loading images */
+img[loading="lazy"] {
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+img[loading="lazy"].loaded {
+  opacity: 1;
+}
+
+/* Reduce layout thrashing */
+.no-layout-shift {
+  contain: layout;
+}
+
+/* Optimize scrolling */
+.smooth-scroll {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Critical resource hints */
+.preload-font {
+  font-display: swap;
+}
+
+/* Optimize animations */
+@media (prefers-reduced-motion: no-preference) {
+  .animate-optimized {
+    animation-fill-mode: both;
+    animation-duration: 0.3s;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+/* Intersection observer optimizations */
+.fade-in-on-scroll {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.fade-in-on-scroll.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Memory optimization */
+.memory-efficient {
+  contain: strict;
+}
+
+/* Reduce paint complexity */
+.simple-paint {
+  border-radius: 0;
+  box-shadow: none;
+  background-image: none;
+}
+
+/* Mobile performance */
+@media (max-width: 768px) {
+  .mobile-optimized {
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+  
+  .mobile-optimized:hover {
+    transform: none !important;
+  }
+}
+
+/* Loading states */
+.skeleton-loading {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite;
+}
+
+.dark .skeleton-loading {
+  background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+  background-size: 200% 100%;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Virtualization support */
+.virtual-list {
+  overflow: auto;
+  height: 100%;
+}
+
+.virtual-item {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+}
+
+/* Image optimization */
+.responsive-image {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  loading: lazy;
+}
+
+/* Font loading optimization */
+@font-face {
+  font-family: 'Inter';
+  font-display: swap;
+  src: url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+}
+
+/* Critical CSS inlining */
+.above-fold {
+  contain: layout style;
+}
+
+/* Reduce JavaScript execution */
+.no-js-fallback {
+  display: none;
+}
+
+.no-js .no-js-fallback {
+  display: block;
+}
+
+/* Optimize third-party scripts */
+.third-party-script {
+  loading: lazy;
+}
+
+/* Bundle splitting hints */
+.route-chunk {
+  contain: layout style paint;
+}
+
+/* Service worker caching */
+.cache-first {
+  cache: force-cache;
+}
+
+/* Prefetch optimization */
+.prefetch-hint {
+  rel: prefetch;
+}
+
+/* DNS prefetch */
+.dns-prefetch {
+  rel: dns-prefetch;
+}
+
+/* Preconnect optimization */
+.preconnect {
+  rel: preconnect;
+  crossorigin: anonymous;
+}
+
+/* Resource prioritization */
+.high-priority {
+  fetchpriority: high;
+}
+
+.low-priority {
+  fetchpriority: low;
+}
+
+/* Compression hints */
+.compress-text {
+  text-rendering: optimizeSpeed;
+}
+
+/* Layout stability */
+.stable-layout {
+  aspect-ratio: 16/9;
+}
+
+/* Reduce DOM complexity */
+.simple-dom {
+  contain: layout style;
+}
+
+/* Optimize event handlers */
+.passive-listener {
+  touch-action: manipulation;
+}
+
+/* Memory leak prevention */
+.cleanup-on-unmount {
+  contain: layout style paint;
+}
+
+/* Battery optimization */
+@media (prefers-reduced-motion: reduce) {
+  .battery-efficient {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Network optimization */
+.offline-ready {
+  contain: layout style paint;
+}
+
+/* Progressive enhancement */
+.enhanced {
+  display: none;
+}
+
+.js .enhanced {
+  display: block;
+}
+
+.js .no-js-only {
+  display: none;
+}
+
+/* Critical path optimization */
+.critical-path {
+  contain: layout style;
+  will-change: auto;
+}
+
+/* Reduce main thread work */
+.worker-ready {
+  contain: strict;
+}
+
+/* Optimize for Core Web Vitals */
+.cwv-optimized {
+  contain: layout style paint;
+  content-visibility: auto;
+  contain-intrinsic-size: 200px;
+}
