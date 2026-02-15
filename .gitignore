@@ -68,3 +68,4 @@ Thumbs.db
 # Nested project directories (prevent duplicates)
 law-ai/
 lawai.git/
+.vercel

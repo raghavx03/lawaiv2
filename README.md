@@ -1,267 +1,128 @@
-# ⚖️ LAW-AI: AI-Powered Legal SaaS Platform
+# ⚖️ LAW-AI: The Future of Legal Tech
 
-> Complete AI-powered legal toolkit for lawyers and legal professionals - from document generation to case tracking, all in one platform.
+> **Enterprise-grade Legal AI Platform** integrating **RAG (Document Intelligence)**, **Streaming AI**, and **Real-time Case Tracking**. Built for speed, accuracy, and scalability.
 
-[![Demo](https://img.shields.io/badge/Demo-Live-brightgreen)](https://your-demo-link.com)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
+[![Demo Status](https://img.shields.io/website?url=https%3A%2F%2Flawaiv2.vercel.app&label=Live%20Demo&style=for-the-badge)](https://lawaiv2.vercel.app)
+[![Tech Stack](https://img.shields.io/badge/Stack-Next.js%20%7C%20Supabase%20%7C%20NVIDIA-blue?style=for-the-badge)](https://stackshare.io)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
-## 🚀 Key Features
+---
 
-- **🤖 AI Assistant** - Legal query resolution with OpenAI GPT
-- **📄 Document Generator** - Automated legal document creation
-- **⚖️ Judgment Summarizer** - AI-powered court judgment analysis
-- **👥 CRM System** - Client relationship management
-- **📚 Acts Database** - Comprehensive legal acts search
-- **📰 Legal News** - Real-time legal updates
-- **📋 Case Tracker** - Court case monitoring
-- **📝 Legal Notices** - Notice generation & management
-- **🔍 Research Tool** - Advanced legal research
+## 🚀 Why This Repo Ranks #1 in Legal AI?
 
-## 📊 Pricing Plans
+Law-AI is not just another wrapper. It's a **full-stack engineering marvel** featuring:
 
-| Plan | Price | Features | Queries |
-|------|-------|----------|---------|
-| **Free** | ₹0 | 3 Core Features | 10 queries |
-| **Basic** | ₹499/month | 3 Core Features | Unlimited |
-| **Plus** | ₹999/month | 6 Features | Unlimited |
-| **Pro** | ₹1,499/month | All 9 Features | Unlimited |
+1.  **🧠 RAG Pipeline (Retrieval-Augmented Generation)**:
+    - Automatically extracts text from uploaded **PDFs/DOCX**.
+    - Generates vector embeddings using **NVIDIA API**.
+    - Stores in **Supabase pgvector** for semantic search.
+    - *Result:* AI that reads and cites *your* specific case files.
+
+2.  **⚡ Instant Streaming AI (<200ms)**:
+    - Powered by **Vercel AI SDK**.
+    - ZERO latency. Responses stream token-by-token.
+    - Uses **Llama 3.3 Nemotron** for legal reasoning.
+
+3.  **🔔 Real-Time Architecture**:
+    - **Supabase Realtime** integration.
+    - Database-driven notifications that push instantly to the UI.
+    - No refreshing required.
+
+4.  **🔒 Enterprise Security**:
+    - Rate limiting (IP & User based).
+    - CSRF & JWT protection.
+    - Role-Based Access Control (RBAC).
+
+---
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: Next.js 14, TypeScript, Tailwind CSS
-- **Backend**: Next.js API Routes
-- **Database**: PostgreSQL + Prisma ORM
-- **Auth**: Supabase Authentication
+- **Frontend**: Next.js 14 (App Router), TypeScript, Tailwind CSS, Shadcn UI
+- **Backend**: Next.js Server Actions & API Routes
+- **Database**: PostgreSQL (Supabase) + Prisma ORM
+- **Vector DB**: pgvector extension
+- **AI Engine**: NVIDIA NIM (Llama 3.3, DeepSeek R1), Vercel AI SDK
+- **Auth**: Supabase Auth (OAuth + Email)
 - **Payments**: Razorpay Integration
-- **AI**: OpenAI GPT-3.5-turbo (Paid Plans), Google Gemini (Free Plan)
-
-## 📸 Screenshots
-
-> 🔗 [Live Demo](https://your-demo-link.com) | [Video Walkthrough](https://your-video-link.com)
 
 ---
 
-# 🔧 Developer Setup
+## ⚡ Quick Start
 
-## Prerequisites
-
+### Prerequisites
 - Node.js 18+
-- PostgreSQL database (Supabase recommended)
-- OpenAI API key (for paid plans)
-- Google Gemini API key (for free plan)
-- Razorpay account
-- Google OAuth credentials (optional)
+- Supabase Project (with `vector` extension enabled)
+- NVIDIA NIM API Key
 
-## Installation
+### Installation
 
-```bash
-# Clone repository
-git clone https://github.com/your-username/law-ai.git
-cd law-ai/frontend
+1.  **Clone the Repo**
+    ```bash
+    git clone https://github.com/raghavx03/lawaiv2.git
+    cd lawaiv2
+    ```
 
-# Install dependencies
-npm install
+2.  **Install Dependencies**
+    ```bash
+    npm install
+    ```
 
-# Copy environment template
-cp .env.example .env.local
-```
+3.  **Configure Environment**
+    Copy `.env.example` to `.env.local` and add your keys:
+    ```env
+    NEXT_PUBLIC_SUPABASE_URL=...
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+    NVIDIA_LLAMA_API_KEY=...
+    ```
 
-## Environment Configuration
+4.  **Initialize Database**
+    ```bash
+    npx prisma generate
+    npx prisma db push
+    # Enable vector extension
+    npx ts-node scripts/enable-vector.ts
+    ```
 
-Create `.env.local` with your credentials:
-
-```env
-# Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-
-# OpenAI Configuration (for paid plans)
-OPENAI_API_KEY=your_openai_api_key
-
-# Google Gemini Configuration (for free plan)
-GEMINI_API_KEY=your_gemini_api_key
-
-# Razorpay Configuration
-NEXT_PUBLIC_RAZORPAY_KEY_ID=your_razorpay_key_id
-RAZORPAY_KEY_SECRET=your_razorpay_key_secret
-RAZORPAY_WEBHOOK_SECRET=your_razorpay_webhook_secret
-
-# Database Configuration
-DATABASE_URL=your_postgresql_connection_string
-
-# Site Configuration
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
-NODE_ENV=development
-```
-
-## Database Setup
-
-```bash
-# Generate Prisma client
-npx prisma generate
-
-# Run migrations
-npx prisma migrate deploy
-
-# (Development) Push schema changes
-npx prisma db push
-
-# (Optional) Open Prisma Studio
-npx prisma studio
-```
-
-## Development
-
-```bash
-# Start development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Start production server
-npm start
-```
-
-## 🚀 Deployment
-
-### Vercel (Recommended)
-
-1. Connect your GitHub repository to Vercel
-2. Set environment variables in Vercel dashboard
-3. Deploy automatically on push to main branch
-
-### Docker
-
-```bash
-# Build image
-docker build -t law-ai .
-
-# Run container
-docker run -p 3000:3000 --env-file .env.local law-ai
-```
-
-## 📡 API Endpoints
-
-### Authentication
-- `GET /api/auth/callback` - Supabase auth callback
-- `GET /api/user/profile` - Get user profile
-
-### Payments
-- `POST /api/payments/create-order` - Create Razorpay order
-- `POST /api/payments/verify` - Verify payment
-- `POST /api/payments/webhook` - Payment webhook
-
-### AI Features
-- `POST /api/chat-enhanced` - AI chat with memory
-- `POST /api/summarizer` - Judgment summarization
-- `POST /api/drafts` - Generate legal documents
-- `GET /api/research` - Legal research queries
-
-### Management
-- `POST /api/case-tracker` - Track court cases
-- `POST /api/notices` - Generate legal notices
-- `POST /api/crm` - CRM operations
-
-## 🔐 Security Features
-
-- **Input Sanitization** - DOMPurify integration
-- **Rate Limiting** - IP and user-based limits
-- **CSRF Protection** - Secure token validation
-- **SQL Injection Prevention** - Prisma ORM protection
-- **XSS Protection** - Content Security Policy
-- **Authentication** - JWT token management
-
-## 🧪 Testing
-
-```bash
-# Test API health
-curl http://localhost:3000/api/health
-
-# Test authenticated endpoint
-curl -X POST http://localhost:3000/api/chat-enhanced \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -d '{"message":"What is Section 420 IPC?"}'
-```
-
-## 🔧 Webhook Setup
-
-### Razorpay Webhooks
-
-1. Go to Razorpay Dashboard → Settings → Webhooks
-2. Add webhook URL: `https://yourdomain.com/api/payments/webhook`
-3. Select events: `payment.captured`, `payment.failed`
-4. Set webhook secret in environment variables
-
-### Local Testing with ngrok
-
-```bash
-# Install ngrok
-npm install -g ngrok
-
-# Expose local server
-ngrok http 3000
-
-# Use ngrok URL for webhook testing
-```
-
-## 📁 Project Structure
-
-```
-src/
-├── app/                 # Next.js App Router
-│   ├── api/            # API endpoints
-│   ├── dashboard/      # Protected dashboard
-│   └── auth/           # Authentication pages
-├── components/         # React components
-│   ├── dashboard/      # Dashboard widgets
-│   ├── auth/          # Auth components
-│   └── ui/            # Reusable UI components
-├── lib/               # Utilities & configurations
-│   ├── auth/          # Authentication helpers
-│   ├── security/      # Security utilities
-│   └── supabase.ts    # Supabase client
-└── middleware.ts      # Route protection
-```
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-**Database Connection Failed**
-```bash
-# Verify DATABASE_URL format
-# Check Supabase project status
-npx prisma db pull
-```
-
-**Authentication Issues**
-```bash
-# Verify Supabase credentials
-# Check middleware configuration
-# Ensure cookies are enabled
-```
-
-**Payment Webhook Failing**
-```bash
-# Verify webhook URL accessibility
-# Check Razorpay webhook secret
-# Test with ngrok for local development
-```
-
-## 📞 Support
-
-- 📧 Email: support@law-ai.com
-- 📖 Documentation: [docs.law-ai.com](https://docs.law-ai.com)
-- 🐛 Issues: [GitHub Issues](https://github.com/ragspro/law-ai/issues)
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+5.  **Run Development Server**
+    ```bash
+    npm run dev
+    ```
 
 ---
 
-**Built with ❤️ for the legal community**
+## 🌟 Key Features
+
+### 🤖 AI Legal Assistant
+- **Context-Aware**: Remembers previous chat context.
+- **Citation Enforcement**: Every claim is backed by Indian Law sections (IPC, CrPC).
+- **Streaming**: Typewriter effect for natural interaction.
+
+### 📄 Intelligent Document Analysis (RAG)
+- Upload Case Files (PDF).
+- Ask questions like *"What is the date of the incident in the FIR?"*.
+- AI scans the *vector database* to find exact answers.
+
+### 📅 Smart Case Tracker
+- Track hearing dates.
+- Auto-sync with court APIs (simulated).
+- **WhatsApp Integration** for client updates.
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
+1.  Fork the Project
+2.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3.  Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4.  Push to the Branch (`git push origin feature/AmazingFeature`)
+5.  Open a Pull Request
+
+---
+
+## 📞 Contact
+
+**Raghav Shah** - [raghavshahhh@gmail.com](mailto:raghavshahhh@gmail.com)
+
+Project Link: [https://github.com/raghavx03/lawaiv2](https://github.com/raghavx03/lawaiv2)

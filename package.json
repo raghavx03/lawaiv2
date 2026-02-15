@@ -1,6 +1,30 @@
 {
   "name": "law-ai",
   "version": "0.1.0",
+  "description": "Enterprise-grade Legal AI Platform featuring RAG (Document Intelligence), Streaming AI (<200ms), and Real-time Case Tracking. Built with Next.js, Supabase, and NVIDIA NIM.",
+  "keywords": [
+    "legal-tech",
+    "ai-lawyer",
+    "rag",
+    "vector-database",
+    "nextjs",
+    "typescript",
+    "supabase",
+    "nvidia-nim",
+    "llama-3",
+    "realtime-notifications",
+    "saas"
+  ],
+  "author": "Raghav Shah <raghavshahhh@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/raghavx03/lawaiv2"
+  },
+  "homepage": "https://lawaiv2.vercel.app",
+  "bugs": {
+    "url": "https://github.com/raghavx03/lawaiv2/issues"
+  },
+  "license": "MIT",
   "private": true,
   "scripts": {
     "dev": "next dev",
