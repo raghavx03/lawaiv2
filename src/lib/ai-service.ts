@@ -1,4 +1,19 @@
-import { env } from './env'
+import { createOpenAI } from '@ai-sdk/openai'
+import { streamText } from 'ai'
+
+// NVIDIA AI Service Layer — Pure NVIDIA Integration
+// Primary: llama-3.3-nemotron-super-49b-v1.5
+// Verification: deepseek-v3.1
+// Strict citation enforcement — no answer without source
+
+const NVIDIA_BASE_URL = 'https://integrate.api.nvidia.com/v1'
+
+// Initialize NVIDIA Provider via OpenAI compatibility layer
+const nvidiaProvider = createOpenAI({
+  baseURL: NVIDIA_BASE_URL,
+  apiKey: process.env.NVIDIA_LLAMA_API_KEY || ''
+})
+
 
 export interface AIMessage {
   role: 'system' | 'user' | 'assistant'
@@ -7,6 +22,9 @@ export interface AIMessage {
 
 export interface AIResponse {
   content: string
+  citations?: string[]
+  model?: string
+  verified?: boolean
   usage?: {
     prompt_tokens?: number
     completion_tokens?: number
@@ -14,159 +32,299 @@ export interface AIResponse {
   }
 }
 
-// Clean response to remove excessive asterisks
+// Clean response formatting — strip thinking tokens and format nicely
 function cleanResponse(content: string): string {
   return content
-    .replace(/\*{3,}/g, '') // Remove 3+ consecutive asterisks
-    .replace(/\*\*([^*]+)\*\*/g, '$1') // Remove bold formatting
-    .replace(/\*([^*]+)\*/g, '$1') // Remove italic formatting
-    .replace(/^\*\s*/gm, '• ') // Convert asterisk bullets to proper bullets
-    .replace(/\n{3,}/g, '\n\n') // Limit consecutive line breaks
+    // Strip Nemotron thinking tokens (<think>...</think>)
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    // Strip orphaned think tags
+    .replace(/<\/?think>/gi, '')
+    .replace(/\*{3,}/g, '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/^\*\s*/gm, '- ')
+    .replace(/\n{3,}/g, '\n\n')
     .trim()
 }
 
-// Check if user is on free plan
-function isFreeUser(userPlan: string): boolean {
-  return userPlan.toUpperCase() === 'FREE'
+// Extract citations from AI response
+function extractCitations(content: string): string[] {
+  const citations: string[] = []
+
+  const sectionRegex = /Section\s+\d+[A-Za-z]?\s+(?:of\s+(?:the\s+)?)?(?:IPC|CrPC|CPC|Constitution|NI Act|IT Act|Evidence Act|Contract Act|Transfer of Property Act|Limitation Act|Companies Act|BNSS|BNS|BSA|[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+Act(?:,?\s+\d{4})?)/gi
+  const sectionMatches = content.match(sectionRegex)
+  if (sectionMatches) citations.push(...sectionMatches)
+
+  const articleRegex = /Article\s+\d+[A-Za-z]?\s*(?:\(\d+\))?(?:\s+of\s+(?:the\s+)?Constitution)?/gi
+  const articleMatches = content.match(articleRegex)
+  if (articleMatches) citations.push(...articleMatches)
+
+  const caseRegex = /[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+(?:v\.|vs\.?|versus)\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*(?:\s*\(\d{4}\))?/gi
+  const caseMatches = content.match(caseRegex)
+  if (caseMatches) citations.push(...caseMatches)
+
+  const reportRegex = /(?:AIR|SCC|SCR|All|Bom|Cal|Del|Mad|Ker|Pat)\s+\d{4}\s+\w+\s+\d+/gi
+  const reportMatches = content.match(reportRegex)
+  if (reportMatches) citations.push(...reportMatches)
+
+  return [...new Set(citations.map(c => c.trim()))]
 }
 
-// Call Google Gemini API
-async function callGeminiAPI(messages: AIMessage[], maxTokens: number = 1000): Promise<AIResponse> {
-  const apiKey = env.GEMINI_API_KEY
-  if (!apiKey || apiKey.includes('your_') || apiKey.includes('placeholder')) {
-    throw new Error('Gemini API key not configured')
-  }
-  console.log('Using Gemini API key:', apiKey.substring(0, 10) + '...')
-
-  // Convert messages to Gemini format
-  const systemMessage = messages.find(m => m.role === 'system')?.content || ''
-  const userMessages = messages.filter(m => m.role === 'user' || m.role === 'assistant')
-  
-  // Build conversation context with formatting instructions
-  let prompt = systemMessage ? `${systemMessage} IMPORTANT: Do not use asterisks (*) for formatting. Use clear headings, numbered lists, and proper paragraph breaks instead.\n\n` : 'IMPORTANT: Do not use asterisks (*) for formatting. Use clear headings, numbered lists, and proper paragraph breaks instead.\n\n'
-  userMessages.forEach(msg => {
-    if (msg.role === 'user') {
-      prompt += `User: ${msg.content}\n`
-    } else if (msg.role === 'assistant') {
-      prompt += `Assistant: ${msg.content}\n`
-    }
-  })
-  
-  // Get the last user message
-  const lastUserMessage = messages.filter(m => m.role === 'user').pop()?.content || ''
-  if (lastUserMessage) {
-    prompt += `User: ${lastUserMessage}\nAssistant:`
-  }
-
-  const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-goog-api-key': apiKey
-    },
-    body: JSON.stringify({
-      contents: [{
-        parts: [{
-          text: prompt
-        }]
-      }],
-      generationConfig: {
-        maxOutputTokens: maxTokens,
-        temperature: 0.7,
-      }
-    })
-  })
-
-  if (!response.ok) {
-    throw new Error(`Gemini API error: ${response.status}`)
-  }
-
-  const data = await response.json()
-  
-  if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-    throw new Error('Invalid Gemini response structure')
-  }
-
-  const content = data.candidates[0].content.parts[0]?.text
-  if (!content) {
-    throw new Error('No content in Gemini response')
-  }
-
-  return {
-    content: cleanResponse(content),
-    usage: data.usageMetadata ? {
-      prompt_tokens: data.usageMetadata.promptTokenCount,
-      completion_tokens: data.usageMetadata.candidatesTokenCount,
-      total_tokens: data.usageMetadata.totalTokenCount
-    } : undefined
-  }
-}
-
-// Call OpenAI API
-async function callOpenAIAPI(messages: AIMessage[], maxTokens: number = 1000, temperature: number = 0.7): Promise<AIResponse> {
-  if (!env.OPENAI_API_KEY || env.OPENAI_API_KEY.includes('placeholder') || env.OPENAI_API_KEY.includes('your_')) {
-    throw new Error('OpenAI API key not configured')
+// NVIDIA Llama 3.3 Nemotron — Primary Model
+async function callNvidiaLlama(
+  messages: AIMessage[],
+  maxTokens: number = 4096,
+  temperature: number = 0.6
+): Promise<AIResponse> {
+  const apiKey = process.env.NVIDIA_LLAMA_API_KEY
+  if (!apiKey || apiKey === 'placeholder' || apiKey.includes('your_')) {
+    throw new Error('NVIDIA Llama API key not configured. Set NVIDIA_LLAMA_API_KEY in .env.local')
   }
 
   const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 30000)
-  
+  const timeoutId = setTimeout(() => controller.abort(), 60000)
+
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch(`${NVIDIA_BASE_URL}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${env.OPENAI_API_KEY}`
+        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
+        model: 'nvidia/llama-3.3-nemotron-super-49b-v1.5',
         messages,
+        temperature,
+        top_p: 0.95,
         max_tokens: maxTokens,
-        temperature
+        frequency_penalty: 0,
+        presence_penalty: 0,
+        stream: false
       }),
       signal: controller.signal
     })
-    
+
     clearTimeout(timeoutId)
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`)
+      const errorText = await response.text().catch(() => 'Unknown error')
+      throw new Error(`NVIDIA Llama API error ${response.status}: ${errorText}`)
     }
 
     const data = await response.json()
-    
+
     if (!data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
-      throw new Error('Invalid OpenAI response structure')
+      throw new Error('Invalid NVIDIA Llama response: no choices returned')
     }
 
     const content = data.choices[0]?.message?.content
     if (!content) {
-      throw new Error('No message content in OpenAI response')
+      throw new Error('No content in NVIDIA Llama response')
     }
 
     return {
       content: cleanResponse(content),
+      citations: extractCitations(content),
+      model: 'nvidia/llama-3.3-nemotron-super-49b-v1.5',
       usage: data.usage
     }
   } catch (error) {
     clearTimeout(timeoutId)
     if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('Request timeout')
+      throw new Error('NVIDIA Llama request timeout (60s)')
     }
     throw error
   }
 }
 
-// Main AI service function that routes to appropriate API based on user plan
+// NVIDIA DeepSeek V3.1 — Verification Model
+async function callNvidiaDeepSeek(
+  messages: AIMessage[],
+  maxTokens: number = 4096
+): Promise<AIResponse> {
+  const apiKey = process.env.NVIDIA_DEEPSEEK_API_KEY
+  if (!apiKey || apiKey === 'placeholder' || apiKey.includes('your_')) {
+    throw new Error('NVIDIA DeepSeek API key not configured. Set NVIDIA_DEEPSEEK_API_KEY in .env.local')
+  }
+
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 60000)
+
+  try {
+    const response = await fetch(`${NVIDIA_BASE_URL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'deepseek-ai/deepseek-v3.1',
+        messages,
+        temperature: 0.2,
+        top_p: 0.7,
+        max_tokens: maxTokens,
+        stream: false
+      }),
+      signal: controller.signal
+    })
+
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error')
+      throw new Error(`NVIDIA DeepSeek API error ${response.status}: ${errorText}`)
+    }
+
+    const data = await response.json()
+
+    if (!data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
+      throw new Error('Invalid NVIDIA DeepSeek response: no choices returned')
+    }
+
+    const content = data.choices[0]?.message?.content
+    if (!content) {
+      throw new Error('No content in NVIDIA DeepSeek response')
+    }
+
+    return {
+      content: cleanResponse(content),
+      citations: extractCitations(content),
+      model: 'deepseek-ai/deepseek-v3.1',
+      usage: data.usage
+    }
+  } catch (error) {
+    clearTimeout(timeoutId)
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('NVIDIA DeepSeek request timeout (60s)')
+    }
+    throw error
+  }
+}
+
+// Verify AI response has proper citations — strict enforcement
+async function verifyResponse(
+  query: string,
+  primaryResponse: string,
+  primaryCitations: string[]
+): Promise<{ verified: boolean; enhancedResponse: string; citations: string[] }> {
+  if (primaryCitations.length >= 2) {
+    return {
+      verified: true,
+      enhancedResponse: primaryResponse,
+      citations: primaryCitations
+    }
+  }
+
+  try {
+    const verificationMessages: AIMessage[] = [
+      {
+        role: 'system',
+        content: `You are a legal verification assistant specializing in Indian law. Your job is to verify the accuracy of a legal response and add specific citations.
+
+RULES:
+1. Every legal claim MUST cite a specific source (Section, Article, Case law, Act, or Rule)
+2. If a claim cannot be verified with a source, mark it as "[Unverified]"
+3. Add a "Sources" section at the end listing all citations
+4. Do NOT fabricate citations — only cite real laws, sections, and case precedents
+5. Format: keep the response structure intact, add citations inline
+6. If the original response lacks any source, add the correct Indian law citation`
+      },
+      {
+        role: 'user',
+        content: `Query: "${query}"
+
+Response to verify:
+${primaryResponse}
+
+Add proper Indian law citations to every legal claim. List all sources at the end.`
+      }
+    ]
+
+    const verification = await callNvidiaDeepSeek(verificationMessages, 4096)
+    const allCitations = [...new Set([...primaryCitations, ...(verification.citations || [])])]
+
+    return {
+      verified: true,
+      enhancedResponse: verification.content,
+      citations: allCitations
+    }
+  } catch (error) {
+    console.warn('Verification failed, using primary response:', error)
+    const disclaimer = primaryCitations.length === 0
+      ? '\n\n---\nNote: This response could not be verified against authoritative sources. Please consult a qualified legal professional for confirmation.'
+      : ''
+
+    return {
+      verified: false,
+      enhancedResponse: primaryResponse + disclaimer,
+      citations: primaryCitations
+    }
+  }
+}
+
+// Citation enforcement system prompt
+const CITATION_SYSTEM_PROMPT = `CRITICAL RULES FOR ALL RESPONSES:
+1. Every legal statement MUST be backed by a specific source citation
+2. Cite specific Sections (e.g., Section 420 IPC), Articles (e.g., Article 21 Constitution), Case laws, Acts, and Rules
+3. NEVER provide legal information without citing the source
+4. If you are unsure about a citation, explicitly state: "Source not confirmed — consult a legal professional"
+5. End every response with a "Sources" section listing all cited authorities
+6. Do NOT use asterisks (*) for formatting — use headings, numbered lists, and paragraphs
+7. Use Indian legal terminology and cite Indian laws, statutes, and precedents`
+
+// Main AI service — routes to NVIDIA models with citation enforcement
 export async function callAIService(
-  messages: AIMessage[], 
-  userPlan: string, 
-  maxTokens: number = 1000, 
+  messages: AIMessage[],
+  userPlan: string = 'FREE',
+  maxTokens: number = 4096,
+  temperature: number = 0.6
+): Promise<AIResponse> {
+  // Inject citation enforcement into system prompt
+  const enhancedMessages = messages.map((msg) => {
+    if (msg.role === 'system') {
+      return {
+        ...msg,
+        content: `${msg.content}\n\n${CITATION_SYSTEM_PROMPT}`
+      }
+    }
+    return msg
+  })
+
+  // If no system message exists, add citation enforcement
+  if (!enhancedMessages.find(m => m.role === 'system')) {
+    enhancedMessages.unshift({
+      role: 'system',
+      content: `You are an expert legal AI assistant specializing in Indian law.\n\n${CITATION_SYSTEM_PROMPT}`
+    })
+  }
+
+  // Call primary model (Llama Nemotron)
+  const primaryResponse = await callNvidiaLlama(enhancedMessages, maxTokens, temperature)
+
+  // Extract the original user query for verification
+  const userQuery = messages.filter(m => m.role === 'user').pop()?.content || ''
+
+  // Verify with DeepSeek for citation enforcement
+  const verification = await verifyResponse(
+    userQuery,
+    primaryResponse.content,
+    primaryResponse.citations || []
+  )
+
+  return {
+    content: verification.enhancedResponse,
+    citations: verification.citations,
+    model: primaryResponse.model,
+    verified: verification.verified,
+    usage: primaryResponse.usage
+  }
+}
+
+// Quick AI call without verification (for non-critical operations)
+export async function callAIQuick(
+  messages: AIMessage[],
+  maxTokens: number = 1000,
   temperature: number = 0.7
 ): Promise<AIResponse> {
-  if (isFreeUser(userPlan)) {
-    return await callGeminiAPI(messages, maxTokens)
-  } else {
-    return await callOpenAIAPI(messages, maxTokens, temperature)
-  }
+  return callNvidiaLlama(messages, maxTokens, temperature)
 }

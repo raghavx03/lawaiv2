@@ -1,605 +1,687 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { useAuth } from '@/context/AuthContext'
-import { useCase } from '@/context/CaseContext'
-import { useUsageTracking } from '@/hooks/useUsageTracking'
-import { CaseRequiredModal } from '@/components/modals/CaseRequiredModal'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { toast, Toaster } from 'react-hot-toast'
-import { 
-  Send, User, Loader2, Upload, X, FileText, Image as ImageIcon, 
-  Trash2, History, Briefcase, Scale, Sparkles, BookOpen, 
-  MessageSquare, HelpCircle, ChevronRight, Save, FileEdit,
-  CheckCircle, Clock
-} from 'lucide-react'
 import Link from 'next/link'
+import {
+  Send, Scale, Sparkles, Loader2, Upload, X, FileText,
+  Phone, Trash2, Plus, Download, Share2,
+  Copy, Check, ChevronRight, MessageSquare, Clock,
+  BookOpen, Briefcase, HelpCircle, FileEdit, Menu, Globe
+} from 'lucide-react'
 
+// ============ TYPES ============
 interface Message {
   id: string
   role: 'user' | 'assistant'
   content: string
   timestamp: Date
   file?: { name: string; type: string }
-  caseId?: string
-  saved?: boolean
 }
 
-interface ChatHistory {
+interface ChatSession {
   id: string
   title: string
-  createdAt: string
-  caseId?: string
+  messages: Message[]
+  createdAt: Date
+  updatedAt: Date
 }
 
+// ============ STORAGE ============
+const SESSIONS_KEY = 'lawai-chat-sessions'
+const ACTIVE_KEY = 'lawai-chat-active'
+
+function genId() {
+  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+}
+
+function timeAgo(date: Date) {
+  const d = new Date(date)
+  const diff = Date.now() - d.getTime()
+  if (diff < 60000) return 'Just now'
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+}
+
+function fmtTime(date: Date) {
+  return new Date(date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+}
+
+// ============ MARKDOWN RENDERER ============
+// Converts markdown to clean HTML for professional display
+function renderMarkdown(text: string): string {
+  let html = text
+    // Escape HTML
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+
+  // Headers
+  html = html.replace(/^### (.+)$/gm, '<h3 class="text-base font-bold text-gray-900 mt-4 mb-2 flex items-center gap-2"><span class="w-1 h-5 bg-amber-500 rounded-full inline-block"></span>$1</h3>')
+  html = html.replace(/^## (.+)$/gm, '<h2 class="text-lg font-bold text-gray-900 mt-5 mb-2 border-b border-gray-200 pb-2">$1</h2>')
+  html = html.replace(/^# (.+)$/gm, '<h1 class="text-xl font-bold text-gray-900 mt-5 mb-3">$1</h1>')
+
+  // Bold & Italic
+  html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong class="font-bold"><em>$1</em></strong>')
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-gray-900">$1</strong>')
+  html = html.replace(/\*(.+?)\*/g, '<em class="italic text-gray-700">$1</em>')
+
+  // Horizontal rules
+  html = html.replace(/^---+$/gm, '<hr class="border-gray-200 my-4" />')
+
+  // Numbered lists
+  html = html.replace(/^(\d+)\.\s+(.+)$/gm, '<div class="flex gap-3 mb-2 ml-1"><span class="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center text-xs font-bold text-gray-600 flex-shrink-0 mt-0.5">$1</span><span>$2</span></div>')
+
+  // Bullet lists
+  html = html.replace(/^[-•]\s+(.+)$/gm, '<div class="flex gap-2 mb-1.5 ml-2"><span class="w-1.5 h-1.5 bg-gray-400 rounded-full flex-shrink-0 mt-2"></span><span>$1</span></div>')
+
+  // Code blocks
+  html = html.replace(/`([^`]+)`/g, '<code class="px-1.5 py-0.5 bg-gray-100 text-gray-800 text-xs rounded font-mono">$1</code>')
+
+  // Sections/Legal refs highlight
+  html = html.replace(/Section\s+(\d+[A-Za-z]*)/g, '<span class="font-semibold text-amber-700 bg-amber-50 px-1 rounded">Section $1</span>')
+  html = html.replace(/Article\s+(\d+[A-Za-z]*)/g, '<span class="font-semibold text-blue-700 bg-blue-50 px-1 rounded">Article $1</span>')
+
+  // Paragraphs (double newline)
+  html = html.replace(/\n\n/g, '</p><p class="mb-3">')
+  // Single newlines within paragraphs
+  html = html.replace(/\n/g, '<br/>')
+
+  // Wrap in paragraph
+  html = `<p class="mb-3">${html}</p>`
+
+  // Clean up empty paragraphs
+  html = html.replace(/<p class="mb-3"><\/p>/g, '')
+  html = html.replace(/<p class="mb-3">(<h[123])/g, '$1')
+  html = html.replace(/(<\/h[123]>)<\/p>/g, '$1')
+  html = html.replace(/<p class="mb-3">(<hr)/g, '$1')
+  html = html.replace(/(\/>\s*)<\/p>/g, '$1')
+  html = html.replace(/<p class="mb-3">(<div)/g, '$1')
+  html = html.replace(/(<\/div>)<\/p>/g, '$1')
+
+  return html
+}
+
+// ============ MAIN COMPONENT ============
 export default function AIAssistantPage() {
-  const { user, profile } = useAuth()
-  const { activeCase, cases, loading: casesLoading } = useCase()
-  const { trackUsage, canUse, usage, limits, isPro } = useUsageTracking()
-  
-  // STEP 2.1: Case Required Modal
-  const [showCaseModal, setShowCaseModal] = useState(false)
-  
+  const [sessions, setSessions] = useState<ChatSession[]>([])
+  const [activeSession, setActiveSession] = useState<ChatSession | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [streamText, setStreamText] = useState('')
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
   const [uploadedFile, setUploadedFile] = useState<{ name: string; type: string; content?: string } | null>(null)
-  const [chatHistory, setChatHistory] = useState<ChatHistory[]>([])
-  const [showHistory, setShowHistory] = useState(false)
+
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
 
-  // Check if case is required on mount
+  // ============ PERSISTENCE ============
   useEffect(() => {
-    if (!casesLoading && !activeCase && cases.length >= 0) {
-      // Show modal after a brief delay to let page render
-      const timer = setTimeout(() => {
-        setShowCaseModal(true)
-      }, 500)
-      return () => clearTimeout(timer)
-    }
-  }, [casesLoading, activeCase, cases])
+    try {
+      const saved = localStorage.getItem(SESSIONS_KEY)
+      if (saved) {
+        const parsed: ChatSession[] = JSON.parse(saved).map((s: any) => ({
+          ...s,
+          createdAt: new Date(s.createdAt),
+          updatedAt: new Date(s.updatedAt),
+          messages: (s.messages || []).map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) }))
+        }))
+        setSessions(parsed)
+        const activeId = localStorage.getItem(ACTIVE_KEY)
+        if (activeId) {
+          const active = parsed.find(s => s.id === activeId)
+          if (active) { setActiveSession(active); setMessages(active.messages) }
+        }
+      }
+    } catch (e) { console.error('Load sessions error:', e) }
+  }, [])
 
-  const scrollToBottom = () => {
+  const save = useCallback((updated: ChatSession[]) => {
+    try { localStorage.setItem(SESSIONS_KEY, JSON.stringify(updated)) } catch (e) { /* ignore */ }
+  }, [])
+
+  const saveActive = useCallback((id: string | null) => {
+    id ? localStorage.setItem(ACTIVE_KEY, id) : localStorage.removeItem(ACTIVE_KEY)
+  }, [])
+
+  // Auto-scroll
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, streamText, loading])
+
+  // Textarea auto-resize
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value)
+    const ta = e.target
+    ta.style.height = '48px'
+    ta.style.height = Math.min(ta.scrollHeight, 150) + 'px'
   }
 
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+  // ============ SESSION MGMT ============
+  const newSession = useCallback(() => {
+    const s: ChatSession = { id: genId(), title: 'New Chat', messages: [], createdAt: new Date(), updatedAt: new Date() }
+    setActiveSession(s); setMessages([]); setSessions(prev => { const u = [s, ...prev]; save(u); return u }); saveActive(s.id); setSidebarOpen(false)
+  }, [save, saveActive])
 
-  useEffect(() => {
-    if (user && activeCase) {
-      loadChatHistory()
-    }
-  }, [user, activeCase])
+  const selectSession = useCallback((s: ChatSession) => {
+    setActiveSession(s); setMessages(s.messages); saveActive(s.id); setSidebarOpen(false)
+  }, [saveActive])
 
-  const loadChatHistory = async () => {
-    if (!activeCase) return
-    try {
-      const response = await fetch(`/api/ai-assistant?caseId=${activeCase.id}`)
-      if (response.ok) {
-        const data = await response.json()
-        if (Array.isArray(data)) {
-          setChatHistory(data.slice(0, 15).map((chat: any) => ({
-            id: chat.id,
-            title: chat.prompt?.substring(0, 40) || 'Chat',
-            createdAt: chat.createdAt,
-            caseId: chat.caseId
-          })))
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load history:', error)
-    }
-  }
+  const deleteSession = useCallback((id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setSessions(prev => { const u = prev.filter(s => s.id !== id); save(u); return u })
+    if (activeSession?.id === id) { setActiveSession(null); setMessages([]); saveActive(null) }
+    toast.success('Deleted')
+  }, [activeSession, save, saveActive])
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // ============ FILE UPLOAD ============
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'text/plain', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
-      if (!allowedTypes.includes(file.type)) {
-        toast.error('Supported: PDF, Images, TXT, DOC files')
-        return
-      }
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error('File size must be less than 10MB')
-        return
-      }
-      
-      if (file.type === 'text/plain') {
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          setUploadedFile({ 
-            name: file.name, 
-            type: file.type,
-            content: e.target?.result as string
-          })
-        }
-        reader.readAsText(file)
-      } else {
-        setUploadedFile({ name: file.name, type: file.type })
-      }
-      toast.success(`File "${file.name}" ready`)
+    if (!file) return
+    if (file.size > 10 * 1024 * 1024) { toast.error('Max 10MB'); return }
+    if (file.type === 'text/plain') {
+      const r = new FileReader()
+      r.onload = (ev) => setUploadedFile({ name: file.name, type: file.type, content: ev.target?.result as string })
+      r.readAsText(file)
+    } else {
+      setUploadedFile({ name: file.name, type: file.type })
     }
+    toast.success(`📎 ${file.name}`)
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!input.trim() && !uploadedFile) return
+  // ============ SEND — STREAMING ============
+  const handleSend = async () => {
+    if ((!input.trim() && !uploadedFile) || loading) return
 
-    // STEP 2.1: Require case selection
-    if (!activeCase) {
-      setShowCaseModal(true)
-      return
-    }
-
-    if (!canUse('ai_message')) {
-      toast.error('Daily AI limit reached. Upgrade for unlimited access.')
-      return
-    }
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: input,
-      timestamp: new Date(),
-      file: uploadedFile ? { name: uploadedFile.name, type: uploadedFile.type } : undefined,
-      caseId: activeCase.id
-    }
-
-    setMessages(prev => [...prev, userMessage])
-    const currentInput = input
+    const msg = input.trim()
     setInput('')
+    if (textareaRef.current) textareaRef.current.style.height = '48px'
+
+    let session = activeSession
+    if (!session) {
+      session = { id: genId(), title: msg.slice(0, 60) || 'New Chat', messages: [], createdAt: new Date(), updatedAt: new Date() }
+      setActiveSession(session)
+      saveActive(session.id)
+    }
+
+    let prompt = msg
+    if (uploadedFile?.content) {
+      prompt = `[Document: ${uploadedFile.name}]\n\nContent:\n${uploadedFile.content.substring(0, 5000)}\n\nQuestion: ${msg || 'Analyze this document.'}`
+    }
+
+    const userMsg: Message = {
+      id: `u-${genId()}`, role: 'user', content: msg || `📎 ${uploadedFile?.name}`, timestamp: new Date(),
+      file: uploadedFile ? { name: uploadedFile.name, type: uploadedFile.type } : undefined
+    }
+
+    const updatedMsgs = [...messages, userMsg]
+    setMessages(updatedMsgs)
+    setUploadedFile(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
     setLoading(true)
+    setStreamText('')
 
     try {
-      let fileContent = uploadedFile?.content || ''
-      
-      if (uploadedFile && !fileContent && fileInputRef.current?.files?.[0]) {
-        const formData = new FormData()
-        formData.append('file', fileInputRef.current.files[0])
-        
-        try {
-          const uploadRes = await fetch('/api/uploads', {
-            method: 'POST',
-            body: formData
-          })
-          if (uploadRes.ok) {
-            const uploadData = await uploadRes.json()
-            fileContent = uploadData.extractedText || ''
-          }
-        } catch (err) {
-          console.error('File upload error:', err)
-        }
-      }
-
-      const prompt = fileContent 
-        ? `[Document: ${uploadedFile?.name}]\n\nContent:\n${fileContent.substring(0, 5000)}\n\nQuestion: ${currentInput || 'Please analyze this document and provide key legal insights.'}`
-        : currentInput
-
-      const response = await fetch('/api/ai-assistant', {
+      // Use streaming endpoint for fast word-by-word response
+      const response = await fetch('/api/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt,
-          caseId: activeCase.id,
-          history: messages.slice(-8).map(m => ({ role: m.role, content: m.content }))
-        })
+        body: JSON.stringify({ message: prompt })
       })
 
-      const data = await response.json()
-
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: data.response || data.message || 'I apologize, but I could not generate a response. Please try again.',
-        timestamp: new Date(),
-        caseId: activeCase.id,
-        saved: !!data.sessionId // Mark as saved to timeline
+      if (!response.ok) {
+        // Fallback to non-streaming
+        const fallbackRes = await fetch('/api/chat-enhanced', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: prompt, sessionId: session.id })
+        })
+        const data = await fallbackRes.json()
+        if (data.ok && data.message) {
+          const aiMsg: Message = { id: `a-${genId()}`, role: 'assistant', content: data.message, timestamp: new Date() }
+          const final = [...updatedMsgs, aiMsg]
+          setMessages(final)
+          updateSession(session, final, msg)
+        }
+        return
       }
 
-      setMessages(prev => [...prev, assistantMessage])
-      setUploadedFile(null)
-      if (fileInputRef.current) fileInputRef.current.value = ''
-      loadChatHistory()
-      await trackUsage('ai_message')
+      // Stream the response
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+      let accumulated = ''
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          const chunk = decoder.decode(value, { stream: true })
+          const lines = chunk.split('\n')
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6)
+              if (data === '[DONE]') continue
+              try {
+                const parsed = JSON.parse(data)
+                if (parsed.content) {
+                  accumulated += parsed.content
+                  setStreamText(accumulated)
+                }
+              } catch {
+                // Not JSON, might be raw text
+                if (data && data !== '[DONE]') {
+                  accumulated += data
+                  setStreamText(accumulated)
+                }
+              }
+            } else if (line.trim() && !line.startsWith(':')) {
+              // Raw text streaming
+              accumulated += line
+              setStreamText(accumulated)
+            }
+          }
+        }
+      }
+
+      if (accumulated.trim()) {
+        const aiMsg: Message = { id: `a-${genId()}`, role: 'assistant', content: accumulated.trim(), timestamp: new Date() }
+        const final = [...updatedMsgs, aiMsg]
+        setMessages(final)
+        setStreamText('')
+        updateSession(session, final, msg)
+      }
     } catch (error: any) {
-      console.error('AI Error:', error)
-      toast.error('Failed to get response. Please try again.')
-      
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: 'I apologize, but I encountered an error. Please try again or rephrase your question.',
-        timestamp: new Date()
-      }
-      setMessages(prev => [...prev, errorMessage])
+      console.error('Chat error:', error)
+      toast.error('Failed to get response')
+      const errMsg: Message = { id: `e-${genId()}`, role: 'assistant', content: 'Sorry, I encountered an error. Please try again.', timestamp: new Date() }
+      setMessages(prev => [...prev, errMsg])
     } finally {
       setLoading(false)
-      inputRef.current?.focus()
+      setStreamText('')
+      textareaRef.current?.focus()
     }
   }
 
-  const clearChat = () => {
-    setMessages([])
-    toast.success('Chat cleared')
-  }
-
-  const handleSuggestionClick = (question: string) => {
-    if (!activeCase) {
-      setShowCaseModal(true)
-      return
+  const updateSession = (session: ChatSession, finalMsgs: Message[], userText: string) => {
+    const updated: ChatSession = {
+      ...session,
+      title: session.title === 'New Chat' ? (userText.slice(0, 60) || 'Document Analysis') : session.title,
+      messages: finalMsgs,
+      updatedAt: new Date()
     }
-    setInput(question)
-    inputRef.current?.focus()
+    setActiveSession(updated)
+    setSessions(prev => {
+      const idx = prev.findIndex(s => s.id === updated.id)
+      const u = idx >= 0 ? prev.map((s, i) => i === idx ? updated : s) : [updated, ...prev]
+      save(u)
+      return u
+    })
   }
 
-  // STEP 2.4: Save to Notes (placeholder)
-  const handleSaveToNotes = (message: Message) => {
-    toast.success('Saved to case notes')
-    setMessages(prev => prev.map(m => 
-      m.id === message.id ? { ...m, saved: true } : m
-    ))
+  // ============ ACTIONS ============
+  const copyMsg = (m: Message) => {
+    navigator.clipboard.writeText(m.content)
+    setCopiedId(m.id)
+    toast.success('Copied!')
+    setTimeout(() => setCopiedId(null), 2000)
   }
 
-  // Categorized suggested questions
-  const suggestedCategories = [
+  const downloadChat = () => {
+    if (!messages.length) return
+    const title = activeSession?.title || 'LAW.AI Chat'
+    const date = new Date().toLocaleDateString('en-IN')
+    let txt = `${title}\nDate: ${date}\n${'='.repeat(50)}\n\n`
+    messages.forEach(m => {
+      txt += `[${fmtTime(m.timestamp)}] ${m.role === 'user' ? 'You' : 'AI Lawyer'}:\n${m.content}\n\n`
+    })
+    txt += `\n${'='.repeat(50)}\nGenerated by LAW.AI\n`
+    const blob = new Blob([txt], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = `${title.replace(/[^a-zA-Z0-9]/g, '_')}_${date}.txt`; a.click()
+    URL.revokeObjectURL(url)
+    toast.success('Downloaded!')
+  }
+
+  const shareChat = async () => {
+    if (!messages.length) return
+    const text = messages.map(m => `${m.role === 'user' ? 'You' : 'AI'}: ${m.content}`).join('\n\n')
+    if (navigator.share) {
+      try { await navigator.share({ title: activeSession?.title, text: text.slice(0, 1000) }) } catch (e) { /* cancelled */ }
+    } else {
+      navigator.clipboard.writeText(text)
+      toast.success('Copied to clipboard!')
+    }
+  }
+
+  const convertToDraft = async (m: Message) => {
+    toast.loading('Creating draft...', { id: 'draft' })
+    try {
+      const r = await fetch('/api/ai-to-draft', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ aiContent: m.content }) })
+      const d = await r.json()
+      if (d.ok) { toast.success('Draft created!', { id: 'draft' }); window.open('/drafts', '_blank') }
+      else toast.error('Failed', { id: 'draft' })
+    } catch { toast.error('Failed', { id: 'draft' }) }
+  }
+
+  // ============ SUGGESTIONS ============
+  const categories = [
     {
-      title: 'Criminal Law',
-      icon: Scale,
-      questions: [
-        'What is Section 420 IPC?',
-        'Explain bail provisions under CrPC',
-        'How to file an FIR?'
-      ]
+      title: 'Criminal Law', icon: Scale, color: 'from-red-500 to-rose-600',
+      questions: ['What is Section 420 IPC?', 'Explain bail provisions under CrPC', 'How to file an FIR?']
     },
     {
-      title: 'Civil & Property',
-      icon: BookOpen,
-      questions: [
-        'How to file a civil suit?',
-        'Property registration process',
-        'Tenant eviction procedure'
-      ]
+      title: 'Civil & Property', icon: BookOpen, color: 'from-blue-500 to-indigo-600',
+      questions: ['How to file a civil suit?', 'Property registration process', 'Tenant eviction procedure']
     },
     {
-      title: 'Family Law',
-      icon: HelpCircle,
-      questions: [
-        'Divorce by mutual consent',
-        'Child custody rights',
-        'Maintenance under Hindu law'
-      ]
+      title: 'Family Law', icon: HelpCircle, color: 'from-purple-500 to-violet-600',
+      questions: ['Divorce by mutual consent', 'Child custody rights', 'Maintenance under Hindu law']
     },
     {
-      title: 'Consumer & Business',
-      icon: Briefcase,
-      questions: [
-        'Section 138 cheque bounce',
-        'Consumer complaint process',
-        'Company registration steps'
-      ]
+      title: 'Consumer & Business', icon: Briefcase, color: 'from-emerald-500 to-green-600',
+      questions: ['Section 138 cheque bounce', 'Consumer complaint process', 'Company registration steps']
     }
   ]
 
+  // ============ RENDER ============
   return (
-    <div className="h-[calc(100vh-8rem)] flex flex-col bg-gray-50 -m-4 sm:-m-6 lg:-m-8">
-      <Toaster position="top-right" />
-      
-      {/* STEP 2.1: Case Required Modal */}
-      <CaseRequiredModal 
-        isOpen={showCaseModal && !activeCase}
-        onCaseSelected={() => setShowCaseModal(false)}
-      />
-      
-      {/* Header with Case Info */}
-      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gray-900 rounded-xl flex items-center justify-center">
-              <Scale className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-gray-900">LAW.AI Assistant</h1>
-              {/* STEP 2.4: Show case name at top */}
-              {activeCase ? (
-                <div className="flex items-center gap-1.5 text-xs">
-                  <span className="text-gray-500">Case:</span>
-                  <span className="font-medium text-gray-900">{activeCase.cnrNumber}</span>
-                  <span className="px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-[10px] font-medium">LINKED</span>
-                </div>
-              ) : (
-                <p className="text-xs text-amber-600 font-medium">⚠️ No case selected</p>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {!isPro && (
-              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 rounded-lg text-xs text-gray-600">
-                <MessageSquare className="h-3.5 w-3.5" />
-                <span>{usage.aiMessagesToday}/{limits.aiMessagesPerDay} queries today</span>
-              </div>
-            )}
-            <button
-              onClick={() => setShowHistory(!showHistory)}
-              className={`p-2 rounded-xl transition-colors ${showHistory ? 'bg-gray-900 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}
-            >
-              <History className="h-5 w-5" />
-            </button>
-            {messages.length > 0 && (
-              <button
-                onClick={clearChat}
-                className="p-2 rounded-xl bg-gray-100 hover:bg-red-100 text-gray-600 hover:text-red-600 transition-colors"
-              >
-                <Trash2 className="h-5 w-5" />
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
+    <div className="h-screen flex bg-white overflow-hidden">
+      <Toaster position="top-center" toastOptions={{ style: { borderRadius: '12px', fontSize: '14px' } }} />
 
-      <div className="flex-1 flex overflow-hidden">
-        {/* Chat History Sidebar */}
-        {showHistory && (
-          <div className="w-72 border-r border-gray-200 bg-white overflow-y-auto hidden sm:block">
-            <div className="p-4">
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">
-                {activeCase ? `History: ${activeCase.cnrNumber}` : 'Recent Conversations'}
-              </h3>
-              {chatHistory.length > 0 ? (
-                <div className="space-y-2">
-                  {chatHistory.map((chat) => (
-                    <div key={chat.id} className="p-3 bg-gray-50 hover:bg-gray-100 rounded-xl cursor-pointer transition-colors">
-                      <p className="text-sm text-gray-900 truncate font-medium">{chat.title}</p>
-                      <div className="flex items-center justify-between mt-1.5">
-                        <p className="text-xs text-gray-400">
-                          {new Date(chat.createdAt).toLocaleDateString()}
-                        </p>
-                        {chat.caseId && (
-                          <span className="flex items-center gap-1 text-[10px] text-green-600">
-                            <CheckCircle className="h-3 w-3" />
-                            Linked
-                          </span>
-                        )}
-                      </div>
+      {/* ====== SIDEBAR ====== */}
+      {sidebarOpen && <div className="fixed inset-0 bg-black/40 z-40 lg:hidden backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />}
+
+      <aside className={`
+        fixed inset-y-0 left-0 z-50 w-80 bg-gray-50 border-r border-gray-200 flex flex-col
+        transform transition-transform duration-300 ease-in-out
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:relative lg:w-72
+      `}>
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-gray-900 to-gray-700 rounded-lg flex items-center justify-center shadow-sm">
+                <Scale className="w-4 h-4 text-white" />
+              </div>
+              <span className="font-bold text-gray-900 text-lg">LAW.AI</span>
+            </div>
+            <button onClick={() => setSidebarOpen(false)} className="lg:hidden p-1.5 hover:bg-gray-200 rounded-lg">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <button onClick={newSession}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium rounded-xl transition-all hover:shadow-lg active:scale-[0.98]">
+            <Plus className="w-4 h-4" /> New Chat
+          </button>
+        </div>
+
+        {/* Voice Lawyer */}
+        <Link href="/voice-lawyer"
+          className="mx-4 mt-3 flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 rounded-xl hover:from-amber-100 hover:to-orange-100 transition-all group active:scale-[0.98]">
+          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-sm">
+            <Phone className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-gray-900">🎙️ Voice Lawyer</p>
+            <p className="text-xs text-gray-500">Talk to Advocate Sharma</p>
+          </div>
+          <ChevronRight className="w-4 h-4 text-gray-400 ml-auto group-hover:translate-x-0.5 transition-transform" />
+        </Link>
+
+        {/* Chat list */}
+        <div className="flex-1 overflow-y-auto p-3 space-y-1">
+          {sessions.length === 0 ? (
+            <div className="text-center py-12">
+              <MessageSquare className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+              <p className="text-sm text-gray-400">No chats yet</p>
+              <p className="text-xs text-gray-400 mt-1">Start a conversation</p>
+            </div>
+          ) : (
+            <>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">Recent Chats</p>
+              {sessions.map(s => (
+                <div key={s.id} onClick={() => selectSession(s)}
+                  className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all ${activeSession?.id === s.id ? 'bg-gray-900 text-white shadow-md' : 'hover:bg-gray-100 text-gray-700'
+                    }`}>
+                  <MessageSquare className={`w-4 h-4 flex-shrink-0 ${activeSession?.id === s.id ? 'text-white/60' : 'text-gray-400'}`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm truncate font-medium">{s.title}</p>
+                    <div className="flex items-center gap-1.5">
+                      <Clock className={`w-3 h-3 ${activeSession?.id === s.id ? 'text-white/40' : 'text-gray-400'}`} />
+                      <p className={`text-xs ${activeSession?.id === s.id ? 'text-white/50' : 'text-gray-400'}`}>{timeAgo(s.updatedAt)}</p>
                     </div>
-                  ))}
+                  </div>
+                  <button onClick={(e) => deleteSession(s.id, e)}
+                    className={`p-1 rounded-lg opacity-0 group-hover:opacity-100 transition-all ${activeSession?.id === s.id ? 'hover:bg-white/10 text-white/60' : 'hover:bg-red-100 text-gray-400 hover:text-red-500'
+                      }`}>
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
-              ) : (
-                <p className="text-sm text-gray-500 text-center py-8">No history for this case</p>
+              ))}
+            </>
+          )}
+        </div>
+        <div className="p-3 border-t border-gray-200"><p className="text-xs text-gray-400 text-center">© 2026 LAW.AI by RAGSPRO</p></div>
+      </aside>
+
+      {/* ====== MAIN CHAT ====== */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header */}
+        <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 hover:bg-gray-100 rounded-lg">
+              <Menu className="w-5 h-5 text-gray-600" />
+            </button>
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 bg-gradient-to-br from-gray-900 to-gray-700 rounded-xl flex items-center justify-center shadow-sm">
+                <Scale className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <h1 className="text-base font-bold text-gray-900">AI Legal Assistant</h1>
+                <p className="text-xs text-gray-500">Indian Law Expert • Powered by AI</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Link href="/voice-lawyer"
+              className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-semibold rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all shadow-sm hover:shadow-md active:scale-[0.97]">
+              <Phone className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Voice Lawyer</span>
+            </Link>
+            {messages.length > 0 && (
+              <>
+                <button onClick={downloadChat} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors" title="Download"><Download className="w-4 h-4" /></button>
+                <button onClick={shareChat} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors" title="Share"><Share2 className="w-4 h-4" /></button>
+              </>
+            )}
+            <button onClick={newSession} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors" title="New Chat"><Plus className="w-4 h-4" /></button>
+          </div>
+        </header>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-50/50 to-white">
+          {messages.length === 0 && !loading ? (
+            /* ====== EMPTY STATE ====== */
+            <div className="h-full flex flex-col items-center justify-center p-4 sm:p-8">
+              <div className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center mb-4 shadow-inner">
+                <Sparkles className="w-8 h-8 text-gray-400" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900 mb-1">Ask Any Legal Question</h2>
+              <p className="text-gray-500 text-sm text-center max-w-md mb-8">
+                IPC, CrPC, Constitution, Property, Family, Consumer Law — get detailed answers with sections, case law & solutions.
+              </p>
+
+              <div className="w-full max-w-3xl grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {categories.map(cat => (
+                  <div key={cat.title} className="bg-white border border-gray-200 rounded-2xl p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${cat.color} flex items-center justify-center`}>
+                        <cat.icon className="w-3.5 h-3.5 text-white" />
+                      </div>
+                      <h3 className="text-sm font-semibold text-gray-900">{cat.title}</h3>
+                    </div>
+                    <div className="space-y-1.5">
+                      {cat.questions.map(q => (
+                        <button key={q} onClick={() => { setInput(q); textareaRef.current?.focus() }}
+                          className="w-full text-left px-3 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 text-sm rounded-xl transition-all flex items-center justify-between group active:scale-[0.98]">
+                          <span>{q}</span>
+                          <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-gray-500 group-hover:translate-x-0.5 transition-all" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-6 flex items-center gap-4 text-xs text-gray-400">
+                <span className="flex items-center gap-1"><Globe className="w-3 h-3" /> English, Hindi, Hinglish</span>
+                <span className="flex items-center gap-1"><Scale className="w-3 h-3" /> Indian Law</span>
+                <span className="flex items-center gap-1"><Upload className="w-3 h-3" /> Document Analysis</span>
+              </div>
+            </div>
+          ) : (
+            /* ====== MESSAGES ====== */
+            <div className="py-4 px-4 sm:px-6 space-y-5 max-w-4xl mx-auto">
+              {messages.map(m => (
+                <div key={m.id} className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : ''} animate-in`}
+                  style={{ animation: 'fadeSlideIn 0.3s ease-out' }}>
+                  {m.role === 'assistant' && (
+                    <div className="w-8 h-8 bg-gradient-to-br from-gray-900 to-gray-700 rounded-xl flex items-center justify-center flex-shrink-0 mt-1 shadow-sm">
+                      <Scale className="w-3.5 h-3.5 text-white" />
+                    </div>
+                  )}
+                  <div className={`max-w-[85%] ${m.role === 'user' ? '' : ''}`}>
+                    {m.file && (
+                      <div className="flex items-center gap-2 mb-1.5 px-3 py-1.5 bg-gray-100 rounded-lg text-xs text-gray-500 w-fit">
+                        <FileText className="w-3.5 h-3.5" /><span>{m.file.name}</span>
+                      </div>
+                    )}
+                    <div className={`rounded-2xl overflow-hidden ${m.role === 'user'
+                      ? 'bg-gray-900 text-white px-4 py-3 rounded-br-md'
+                      : 'bg-white border border-gray-200 px-5 py-4 rounded-bl-md shadow-sm'
+                      }`}>
+                      {m.role === 'user' ? (
+                        <p className="whitespace-pre-wrap text-sm leading-relaxed">{m.content}</p>
+                      ) : (
+                        <div className="prose-legal text-sm leading-relaxed text-gray-800"
+                          dangerouslySetInnerHTML={{ __html: renderMarkdown(m.content) }} />
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1.5 px-1">
+                      <span className="text-xs text-gray-400">{fmtTime(m.timestamp)}</span>
+                      {m.role === 'assistant' && (
+                        <div className="flex items-center gap-0.5 ml-auto">
+                          <button onClick={() => copyMsg(m)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title="Copy">
+                            {copiedId === m.id ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                          </button>
+                          <button onClick={() => convertToDraft(m)} className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors" title="Create Draft">
+                            <FileEdit className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={downloadChat} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title="Download">
+                            <Download className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {m.role === 'user' && (
+                    <div className="w-8 h-8 bg-gray-200 rounded-xl flex items-center justify-center flex-shrink-0 mt-1">
+                      <span className="text-xs font-bold text-gray-500">You</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {/* STREAMING TEXT — shows word by word */}
+              {streamText && (
+                <div className="flex gap-3" style={{ animation: 'fadeSlideIn 0.3s ease-out' }}>
+                  <div className="w-8 h-8 bg-gradient-to-br from-gray-900 to-gray-700 rounded-xl flex items-center justify-center flex-shrink-0 mt-1 shadow-sm">
+                    <Scale className="w-3.5 h-3.5 text-white" />
+                  </div>
+                  <div className="max-w-[85%] bg-white border border-gray-200 rounded-2xl rounded-bl-md px-5 py-4 shadow-sm">
+                    <div className="prose-legal text-sm leading-relaxed text-gray-800"
+                      dangerouslySetInnerHTML={{ __html: renderMarkdown(streamText) }} />
+                    <span className="inline-block w-2 h-4 bg-gray-400 rounded-sm animate-pulse ml-0.5" />
+                  </div>
+                </div>
               )}
+
+              {/* LOADING */}
+              {loading && !streamText && (
+                <div className="flex gap-3" style={{ animation: 'fadeSlideIn 0.3s ease-out' }}>
+                  <div className="w-8 h-8 bg-gradient-to-br from-gray-900 to-gray-700 rounded-xl flex items-center justify-center shadow-sm">
+                    <Scale className="w-3.5 h-3.5 text-white" />
+                  </div>
+                  <div className="bg-white border border-gray-200 px-5 py-4 rounded-2xl rounded-bl-md shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="flex gap-1">
+                        {[0, 1, 2].map(i => (
+                          <span key={i} className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: `${i * 150}ms` }} />
+                        ))}
+                      </div>
+                      <span className="text-sm text-gray-500">Analyzing...</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div ref={messagesEndRef} />
+            </div>
+          )}
+        </div>
+
+        {/* FILE PREVIEW */}
+        {uploadedFile && (
+          <div className="px-4 pb-2 max-w-4xl mx-auto w-full">
+            <div className="flex items-center gap-3 p-2.5 bg-gray-50 border border-gray-200 rounded-xl">
+              <FileText className="w-4 h-4 text-gray-500" />
+              <span className="text-sm text-gray-700 flex-1 truncate">{uploadedFile.name}</span>
+              <button onClick={() => { setUploadedFile(null); if (fileInputRef.current) fileInputRef.current.value = '' }} className="p-1 hover:bg-gray-200 rounded-lg"><X className="w-4 h-4 text-gray-500" /></button>
             </div>
           </div>
         )}
 
-        {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col min-w-0 bg-white">
-          {/* Active Case Banner */}
-          {activeCase && (
-            <div className="px-4 py-2.5 bg-gray-900 text-white flex items-center justify-between text-sm">
-              <div className="flex items-center gap-2">
-                <Briefcase className="h-4 w-4 text-white/60" />
-                <span>Working on: <strong>{activeCase.cnrNumber}</strong></span>
-                {/* STEP 2.4: "Used in this case" badge */}
-                <span className="px-2 py-0.5 bg-white/20 rounded text-xs">All responses saved to timeline</span>
-              </div>
-              {activeCase.nextHearing && (
-                <div className="hidden sm:flex items-center gap-1.5 text-white/60 text-xs">
-                  <Clock className="h-3.5 w-3.5" />
-                  Next: {activeCase.nextHearing}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto">
-            {messages.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center p-4 sm:p-8">
-                <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
-                  <Sparkles className="h-8 w-8 text-gray-400" />
-                </div>
-                <h2 className="text-xl font-bold text-gray-900 mb-2 text-center">
-                  {activeCase ? `Ask about ${activeCase.cnrNumber}` : 'Select a Case to Start'}
-                </h2>
-                <p className="text-gray-500 text-center max-w-md mb-8 text-sm">
-                  {activeCase 
-                    ? 'I can help with IPC sections, CrPC procedures, civil matters, family law, property disputes, and more.'
-                    : 'LAW.AI works case-wise. Select or create a case to get contextual legal assistance.'}
-                </p>
-                
-                {activeCase ? (
-                  <>
-                    {/* Suggested Questions by Category */}
-                    <div className="w-full max-w-3xl grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {suggestedCategories.map((category) => (
-                        <div key={category.title} className="bg-gray-50 rounded-2xl p-4">
-                          <div className="flex items-center gap-2 mb-3">
-                            <category.icon className="h-4 w-4 text-gray-600" />
-                            <h3 className="text-sm font-semibold text-gray-900">{category.title}</h3>
-                          </div>
-                          <div className="space-y-2">
-                            {category.questions.map((q) => (
-                              <button
-                                key={q}
-                                onClick={() => handleSuggestionClick(q)}
-                                className="w-full text-left px-3 py-2 bg-white hover:bg-gray-100 text-gray-700 text-sm rounded-xl transition-colors flex items-center justify-between group"
-                              >
-                                <span>{q}</span>
-                                <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-gray-600" />
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <p className="mt-6 text-xs text-gray-400 text-center">
-                      🌐 Supports English, Hindi, and Hinglish • ⚖️ Based on Indian Law
-                    </p>
-                  </>
-                ) : (
-                  <button
-                    onClick={() => setShowCaseModal(true)}
-                    className="px-6 py-3 bg-gray-900 hover:bg-gray-800 text-white font-medium rounded-xl transition-colors"
-                  >
-                    Select a Case to Continue
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className="py-4 px-4 sm:px-6 space-y-4">
-                {messages.map((message) => (
-                  <div key={message.id} className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : ''}`}>
-                    {message.role === 'assistant' && (
-                      <div className="w-9 h-9 bg-gray-900 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <Scale className="h-4 w-4 text-white" />
-                      </div>
-                    )}
-                    <div className={`max-w-[80%] ${message.role === 'user' ? 'order-first' : ''}`}>
-                      {message.file && (
-                        <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-gray-100 rounded-lg text-xs text-gray-600">
-                          {message.file.type.startsWith('image/') ? (
-                            <ImageIcon className="h-4 w-4" />
-                          ) : (
-                            <FileText className="h-4 w-4" />
-                          )}
-                          <span className="truncate">{message.file.name}</span>
-                        </div>
-                      )}
-                      <div className={`px-4 py-3 rounded-2xl ${
-                        message.role === 'user' 
-                          ? 'bg-gray-900 text-white' 
-                          : 'bg-gray-100 text-gray-900'
-                      }`}>
-                        <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
-                      </div>
-                      {/* STEP 2.4: Action buttons for assistant messages */}
-                      <div className="flex items-center gap-2 mt-1.5 px-2">
-                        <p className="text-xs text-gray-400">
-                          {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                        {message.caseId && (
-                          <span className="flex items-center gap-1 text-[10px] text-green-600">
-                            <CheckCircle className="h-3 w-3" />
-                            Saved
-                          </span>
-                        )}
-                        {message.role === 'assistant' && (
-                          <div className="flex items-center gap-1 ml-auto">
-                            <button
-                              onClick={() => handleSaveToNotes(message)}
-                              className={`p-1.5 rounded-lg transition-colors ${
-                                message.saved 
-                                  ? 'bg-green-100 text-green-600' 
-                                  : 'hover:bg-gray-200 text-gray-400 hover:text-gray-600'
-                              }`}
-                              title="Save to Notes"
-                            >
-                              <Save className="h-3.5 w-3.5" />
-                            </button>
-                            {/* STEP 2.4: Use in Draft button (disabled for now) */}
-                            <button
-                              disabled
-                              className="p-1.5 rounded-lg text-gray-300 cursor-not-allowed"
-                              title="Use in Draft (Coming Soon)"
-                            >
-                              <FileEdit className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    {message.role === 'user' && (
-                      <div className="w-9 h-9 bg-gray-200 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <User className="h-4 w-4 text-gray-600" />
-                      </div>
-                    )}
-                  </div>
-                ))}
-                {loading && (
-                  <div className="flex gap-3">
-                    <div className="w-9 h-9 bg-gray-900 rounded-xl flex items-center justify-center">
-                      <Scale className="h-4 w-4 text-white" />
-                    </div>
-                    <div className="bg-gray-100 px-4 py-3 rounded-2xl">
-                      <div className="flex items-center gap-2">
-                        <div className="flex gap-1">
-                          <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                          <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                          <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                        </div>
-                        <span className="text-sm text-gray-600">Analyzing {activeCase?.cnrNumber}...</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-            )}
-          </div>
-
-          {/* Uploaded File Preview */}
-          {uploadedFile && (
-            <div className="mx-4 mb-2">
-              <div className="flex items-center gap-3 p-3 bg-gray-100 rounded-xl border border-gray-200">
-                {uploadedFile.type.startsWith('image/') ? (
-                  <ImageIcon className="h-5 w-5 text-gray-500 flex-shrink-0" />
-                ) : (
-                  <FileText className="h-5 w-5 text-gray-500 flex-shrink-0" />
-                )}
-                <span className="text-sm text-gray-700 flex-1 truncate">{uploadedFile.name}</span>
-                <button 
-                  onClick={() => { setUploadedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }} 
-                  className="p-1.5 hover:bg-gray-200 rounded-lg flex-shrink-0"
-                >
-                  <X className="h-4 w-4 text-gray-500" />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Input */}
-          <div className="border-t border-gray-200 bg-white p-4">
-            <form onSubmit={handleSubmit} className="flex items-center gap-3">
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileUpload}
-                accept=".pdf,.jpg,.jpeg,.png,.webp,.txt,.doc,.docx"
-                className="hidden"
-              />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="p-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors flex-shrink-0"
-                title="Upload document"
-              >
-                <Upload className="h-5 w-5" />
+        {/* INPUT */}
+        <div className="border-t border-gray-200 bg-white p-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex items-end gap-2">
+              <input type="file" ref={fileInputRef} onChange={handleFile} accept=".pdf,.jpg,.jpeg,.png,.txt,.doc,.docx" className="hidden" />
+              <button onClick={() => fileInputRef.current?.click()}
+                className="p-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-500 transition-all flex-shrink-0 mb-0.5 active:scale-95" title="Upload doc">
+                <Upload className="w-5 h-5" />
               </button>
-              <input
-                ref={inputRef}
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder={activeCase ? `Ask about ${activeCase.cnrNumber}...` : 'Select a case first...'}
-                className="flex-1 px-4 py-3 bg-gray-100 border-0 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 text-sm"
-                disabled={loading || !activeCase}
-              />
-              <button
-                type="submit"
-                disabled={loading || (!input.trim() && !uploadedFile) || !activeCase}
-                className="p-3 rounded-xl bg-gray-900 hover:bg-gray-800 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
-              >
-                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+              <div className="flex-1 relative">
+                <textarea ref={textareaRef} value={input} onChange={handleInputChange}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
+                  placeholder="Ask any legal question... (Hindi or English)" rows={1} disabled={loading}
+                  className="w-full px-4 py-3 bg-gray-100 border-0 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 text-sm resize-none transition-all"
+                  style={{ minHeight: '48px', maxHeight: '150px' }} />
+              </div>
+              <button onClick={handleSend} disabled={loading || (!input.trim() && !uploadedFile)}
+                className="p-2.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-white transition-all disabled:opacity-40 flex-shrink-0 mb-0.5 active:scale-95 hover:shadow-lg">
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
               </button>
-            </form>
-            <p className="text-xs text-gray-400 text-center mt-3">
-              ⚖️ AI responses are for reference only. Consult a qualified advocate for legal advice.
-            </p>
+            </div>
+            <p className="text-xs text-gray-400 text-center mt-2.5">AI responses are for reference only. Consult a qualified advocate.</p>
           </div>
         </div>
       </div>
+
+      {/* Animations CSS */}
+      <style jsx global>{`
+        @keyframes fadeSlideIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .prose-legal h1, .prose-legal h2, .prose-legal h3 { font-family: inherit; }
+        .prose-legal hr { margin: 16px 0; }
+        .prose-legal strong { color: #111827; }
+      `}</style>
     </div>
   )
 }

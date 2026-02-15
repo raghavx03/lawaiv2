@@ -87,7 +87,7 @@ export default function CaseTrackerPage() {
 
   const deleteCase = async (id: string) => {
     if (!confirm('Remove this case from tracking?')) return
-    
+
     try {
       const response = await fetch(`/api/case-tracker?id=${id}`, { method: 'DELETE' })
       if (response.ok) {
@@ -109,7 +109,7 @@ export default function CaseTrackerPage() {
     return 'bg-gray-100 text-gray-600'
   }
 
-  const filteredCases = filterStatus 
+  const filteredCases = filterStatus
     ? cases.filter(c => c.status?.toLowerCase().includes(filterStatus.toLowerCase()))
     : cases
 
@@ -118,23 +118,30 @@ export default function CaseTrackerPage() {
   return (
     <div className="max-w-5xl mx-auto px-2 sm:px-0">
       <Toaster position="top-right" />
-      
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Case Tracker</h1>
-          <p className="text-gray-500 text-sm mt-1">Track court cases by CNR number</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+            Case Tracker
+            <span className="flex h-2 w-2 relative ml-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+            </span>
+            <span className="text-xs font-normal text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-100">LIVE</span>
+          </h1>
+          <p className="text-gray-500 text-sm mt-1">Real-time court updates from e-Courts services</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+          <span className="px-3 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded-full border border-gray-200">
             {profile?.plan || 'FREE'} Plan
           </span>
           <button
             onClick={fetchCases}
             className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-colors"
           >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">Refresh</span>
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin text-green-600' : ''}`} />
+            <span className="hidden sm:inline">{loading ? 'Syncing...' : 'Refresh'}</span>
           </button>
         </div>
       </div>
@@ -181,8 +188,17 @@ export default function CaseTrackerPage() {
             disabled={searching}
             className="px-6 py-3 bg-gray-900 hover:bg-gray-800 text-white font-medium rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {searching ? <Loader2 className="h-5 w-5 animate-spin" /> : <Plus className="h-5 w-5" />}
-            <span>Track</span>
+            {searching ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span>Connecting to e-Courts...</span>
+              </>
+            ) : (
+              <>
+                <Plus className="h-5 w-5" />
+                <span>Track Live</span>
+              </>
+            )}
           </button>
         </div>
         <p className="text-xs text-gray-400 mt-2">
@@ -199,11 +215,10 @@ export default function CaseTrackerPage() {
               <button
                 key={status}
                 onClick={() => setFilterStatus(status)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                  filterStatus === status 
-                    ? 'bg-gray-900 text-white' 
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${filterStatus === status
+                    ? 'bg-gray-900 text-white'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
+                  }`}
               >
                 {status || 'All'}
               </button>
@@ -217,7 +232,7 @@ export default function CaseTrackerPage() {
         <h2 className="text-lg font-semibold text-gray-900">
           Tracked Cases ({filteredCases.length})
         </h2>
-        
+
         {loading ? (
           <div className="bg-white border border-gray-200 rounded-2xl p-8 sm:p-12 text-center">
             <Loader2 className="h-8 w-8 animate-spin text-gray-400 mx-auto mb-4" />
@@ -232,8 +247,8 @@ export default function CaseTrackerPage() {
         ) : (
           <div className="grid gap-4">
             {filteredCases.map((caseItem) => (
-              <div 
-                key={caseItem.id} 
+              <div
+                key={caseItem.id}
                 className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-6 hover:border-gray-300 transition-colors"
               >
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
@@ -250,7 +265,7 @@ export default function CaseTrackerPage() {
                         {caseItem.status || 'Pending'}
                       </span>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
@@ -268,7 +283,7 @@ export default function CaseTrackerPage() {
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-2 sm:flex-col">
                     <button
                       onClick={() => setSelectedCase(selectedCase?.id === caseItem.id ? null : caseItem)}

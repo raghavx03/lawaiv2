@@ -44,13 +44,13 @@ export function FixedMobileChat() {
   const [isRecording, setIsRecording] = useState(false)
   const [showAttachments, setShowAttachments] = useState(false)
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ 
+    messagesEndRef.current?.scrollIntoView({
       behavior: 'smooth',
       block: 'end'
     })
@@ -100,7 +100,7 @@ export function FixedMobileChat() {
       createdAt: new Date(),
       updatedAt: new Date()
     }
-    
+
     setCurrentSession(newSession)
     setMessages([])
     setSessions(prev => {
@@ -140,11 +140,11 @@ export function FixedMobileChat() {
 
   const handleSend = useCallback(async () => {
     if (!input.trim() || isStreaming) return
-    
+
     const message = input.trim()
     setInput('')
     setTextareaHeight(44)
-    
+
     let workingSession = currentSession
     if (!workingSession) {
       workingSession = {
@@ -166,7 +166,7 @@ export function FixedMobileChat() {
 
     const updatedMessages = [...messages, userMessage]
     setMessages(updatedMessages)
-    
+
     setIsStreaming(true)
     setStreamingMessage('')
 
@@ -216,16 +216,16 @@ export function FixedMobileChat() {
 
                   const finalMessages = [...updatedMessages, assistantMessage]
                   setMessages(finalMessages)
-                  
+
                   const finalSession = {
                     ...workingSession,
                     title: data.title || workingSession.title,
                     messages: finalMessages,
                     updatedAt: new Date()
                   }
-                  
+
                   setCurrentSession(finalSession)
-                  
+
                   setSessions(prev => {
                     const existingIndex = prev.findIndex(s => s.id === finalSession.id)
                     let updated
@@ -248,7 +248,7 @@ export function FixedMobileChat() {
       }
     } catch (error) {
       console.error('Streaming error')
-      
+
       const errorMessage: Message = {
         id: `error-${Date.now()}`,
         role: 'assistant',
@@ -306,7 +306,7 @@ export function FixedMobileChat() {
     <div className="flex h-full chat-theme relative overflow-hidden chat-container">
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 md:hidden"
           onClick={() => setSidebarOpen(false)}
         />
@@ -328,7 +328,7 @@ export function FixedMobileChat() {
                 <p className="text-xs text-muted-foreground">Legal AI Assistant</p>
               </div>
             </div>
-            
+
             <Button
               onClick={createNewSession}
               className="w-full bg-green-600 hover:bg-green-700 text-white"
@@ -344,11 +344,10 @@ export function FixedMobileChat() {
               {sessions.map((session) => (
                 <div
                   key={session.id}
-                  className={`p-3 rounded-lg cursor-pointer transition-all duration-200 ${
-                    currentSession?.id === session.id
+                  className={`p-3 rounded-lg cursor-pointer transition-all duration-200 ${currentSession?.id === session.id
                       ? 'bg-green-600/20 border border-green-600/30'
                       : 'hover:bg-muted/50'
-                  }`}
+                    }`}
                   onClick={() => selectSession(session)}
                 >
                   <h3 className="text-sm font-medium text-foreground truncate">
@@ -382,7 +381,7 @@ export function FixedMobileChat() {
             >
               <Menu className="h-5 w-5" />
             </Button>
-            
+
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center">
                 <Bot className="h-4 w-4 text-white" />
@@ -418,7 +417,7 @@ export function FixedMobileChat() {
                 </div>
                 <h2 className="text-xl font-semibold mb-2 text-foreground">Welcome to Legal AI Assistant</h2>
                 <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                  I can help you with legal questions, document analysis, case research, and more. 
+                  I can help you with legal questions, document analysis, case research, and more.
                   How can I assist you today?
                 </p>
               </div>
@@ -430,15 +429,13 @@ export function FixedMobileChat() {
                 className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} animate-message-appear`}
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
-                <div className={`flex max-w-[85%] md:max-w-[70%] ${
-                  message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
-                } space-x-3`}>
+                <div className={`flex max-w-[85%] md:max-w-[70%] ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
+                  } space-x-3`}>
                   <div className={`flex-shrink-0 ${message.role === 'user' ? 'ml-3' : 'mr-3'}`}>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      message.role === 'user' 
-                        ? 'bg-green-600' 
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${message.role === 'user'
+                        ? 'bg-green-600'
                         : 'bg-muted'
-                    }`}>
+                      }`}>
                       {message.role === 'user' ? (
                         <User className="h-4 w-4 text-white" />
                       ) : (
@@ -448,22 +445,20 @@ export function FixedMobileChat() {
                   </div>
 
                   <div className={`${message.role === 'user' ? 'text-right' : 'text-left'}`}>
-                    <div className={`inline-block p-3 rounded-2xl message-bubble mobile-optimized ${
-                      message.role === 'user'
+                    <div className={`inline-block p-3 rounded-2xl message-bubble mobile-optimized ${message.role === 'user'
                         ? 'bg-green-600 text-white rounded-br-md shadow-lg'
                         : 'chat-message-theme rounded-bl-md shadow-md'
-                    }`}>
+                      }`}>
                       <div className="whitespace-pre-wrap text-sm leading-relaxed break-words">
                         {message.content}
                       </div>
                     </div>
-                    
-                    <div className={`text-xs text-gray-500 mt-1 ${
-                      message.role === 'user' ? 'text-right' : 'text-left'
-                    }`}>
-                      {new Date(message.timestamp).toLocaleTimeString([], { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
+
+                    <div className={`text-xs text-gray-500 mt-1 ${message.role === 'user' ? 'text-right' : 'text-left'
+                      }`}>
+                      {new Date(message.timestamp).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit'
                       })}
                     </div>
                   </div>
@@ -506,7 +501,7 @@ export function FixedMobileChat() {
                 </div>
               </div>
             )}
-            
+
             <div ref={messagesEndRef} />
           </div>
         </ScrollArea>
@@ -564,11 +559,10 @@ export function FixedMobileChat() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className={`h-10 w-10 p-0 rounded-full transition-all touch-feedback ${
-                    isRecording 
-                      ? 'bg-red-600 hover:bg-red-700 text-white' 
+                  className={`h-10 w-10 p-0 rounded-full transition-all touch-feedback ${isRecording
+                      ? 'bg-red-600 hover:bg-red-700 text-white'
                       : 'hover:bg-muted text-muted-foreground hover:text-foreground'
-                  }`}
+                    }`}
                   onClick={handleVoiceToggle}
                   disabled={isStreaming}
                 >
@@ -606,23 +600,24 @@ export function FixedMobileChat() {
                 <Button
                   onClick={handleSend}
                   disabled={!input.trim() || isStreaming || isRecording}
-                  className={`h-10 w-10 p-0 rounded-full transition-all touch-feedback ${
-                    input.trim() && !isStreaming && !isRecording
+                  className={`h-10 w-10 p-0 rounded-full transition-all touch-feedback ${input.trim() && !isStreaming && !isRecording
                       ? 'bg-green-600 hover:bg-green-700 text-white scale-100'
                       : 'bg-muted text-muted-foreground scale-95'
-                  }`}
+                    }`}
                 >
                   <Send className="h-5 w-5" />
                 </Button>
               </div>
             </div>
-            
+
             <div className="mt-2 text-xs text-muted-foreground text-center px-2">
               {isRecording ? (
                 <span className="text-red-500">🎤 Recording...</span>
               ) : (
-                <span className="hidden sm:inline">Enter to send • AI can make mistakes</span>
-                <span className="sm:hidden">AI can make mistakes</span>
+                <>
+                  <span className="hidden sm:inline">Enter to send • AI can make mistakes</span>
+                  <span className="sm:hidden">AI can make mistakes</span>
+                </>
               )}
             </div>
 

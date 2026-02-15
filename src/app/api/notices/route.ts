@@ -12,9 +12,9 @@ export async function POST(request: NextRequest) {
     const { noticeType, recipient, recipientAddress, subject, details, amount, dueDate, caseId } = body
 
     if (!recipient || !subject) {
-      return NextResponse.json({ 
-        ok: false, 
-        message: 'Recipient and subject are required' 
+      return NextResponse.json({
+        ok: false,
+        message: 'Recipient and subject are required'
       }, { status: 400 })
     }
 
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
 Recipient: ${recipient}
 ${recipientAddress ? `Address: ${recipientAddress}` : ''}
 Subject: ${subject}
-${amount ? `Amount: ₹${amount}` : ''}
+${amount ? `Amount: Rs. ${amount}` : ''}
 ${dueDate ? `Due Date: ${dueDate}` : ''}
 ${details ? `Additional Details: ${details}` : ''}`
 
@@ -39,7 +39,7 @@ ${details ? `Additional Details: ${details}` : ''}`
           select: { title: true, cnrNumber: true, court: true, petitioner: true, respondent: true }
         }).catch(() => null)
       }, null)
-      
+
       if (caseData) {
         context += `\n\nCase Reference: ${caseData.title}${caseData.cnrNumber ? ` (CNR: ${caseData.cnrNumber})` : ''}`
       }
@@ -49,14 +49,17 @@ ${details ? `Additional Details: ${details}` : ''}`
     const messages = [
       {
         role: 'system' as const,
-        content: `You are a legal expert specializing in drafting formal legal notices under Indian law. Generate professional legal notices with:
-- Proper legal formatting and structure
-- Formal legal language appropriate for Indian courts
-- Reference to relevant Indian laws and sections
-- Clear demands and timelines
-- Professional closing with advocate details placeholder
+        content: `You are a legal expert specializing in drafting formal legal notices under Indian law.
 
-Do not use asterisks for formatting. Use proper headings and paragraphs.`
+NOTICE DRAFTING RULES:
+1. Use proper legal formatting: proper header, date, reference numbers, parties, body, closing
+2. Use formal legal language appropriate for Indian courts
+3. Cite relevant Indian laws and sections (IPC, CPC, CrPC, specific Acts)
+4. Include clear demands with specific timelines
+5. Add professional closing with advocate details placeholder
+6. Reference specific legal provisions that support the notice
+7. Do NOT use asterisks for formatting -- use proper headings and paragraphs
+8. End with a "Legal Provisions Referenced" section listing all cited laws`
       },
       {
         role: 'user' as const,
@@ -64,19 +67,18 @@ Do not use asterisks for formatting. Use proper headings and paragraphs.`
       }
     ]
 
-    const aiResponse = await callAIService(messages, user ? 'PRO' : 'FREE', 2000, 0.3)
+    const aiResponse = await callAIService(messages, user ? 'PRO' : 'FREE', 4096, 0.3)
     const content = aiResponse.content
 
     if (!content) {
       throw new Error('Failed to generate notice')
     }
 
-
     // Save to database
     const savedNotice = await safeDbOperation(async () => {
       const { prisma } = await import('@/lib/prisma')
       if (!prisma) throw new Error('Database unavailable')
-      
+
       return prisma.notice.create({
         data: {
           userId,
@@ -98,18 +100,20 @@ Do not use asterisks for formatting. Use proper headings and paragraphs.`
       ok: true,
       id: savedNotice?.id || `temp-${Date.now()}`,
       content,
-      notice: content, // Alias
+      notice: content,
       type: noticeType,
       recipient,
       subject,
+      citations: aiResponse.citations || [],
+      model: aiResponse.model,
       caseId,
       createdAt: savedNotice?.createdAt || new Date().toISOString()
     })
   } catch (error: any) {
     console.error('Notice generation error:', error)
-    return NextResponse.json({ 
-      ok: false, 
-      message: error.message || 'Failed to generate notice' 
+    return NextResponse.json({
+      ok: false,
+      message: error.message || 'Failed to generate notice'
     }, { status: 500 })
   }
 }
@@ -124,29 +128,23 @@ export async function GET(request: NextRequest) {
     const notices = await safeDbOperation(async () => {
       const { prisma } = await import('@/lib/prisma')
       if (!prisma) return []
-      
+
       const whereClause: any = { userId }
       if (caseId) {
         whereClause.caseId = caseId
       }
-      
+
       return prisma.notice.findMany({
         where: whereClause,
         orderBy: { createdAt: 'desc' },
         take: 20,
         select: {
-          id: true,
-          type: true,
-          title: true,
-          content: true,
-          recipient: true,
-          caseId: true,
-          createdAt: true
+          id: true, type: true, title: true, content: true,
+          recipient: true, caseId: true, createdAt: true
         }
       })
     }, [])
 
-    // Map to expected format
     const formattedNotices = notices.map((n: any) => ({
       id: n.id,
       type: n.type,

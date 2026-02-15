@@ -1,11 +1,12 @@
 export const dynamic = "force-dynamic"
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { prisma } from '@/lib/prisma'
+import { safeDbOperation } from '@/lib/prisma'
 import { createGuardedHandler } from '@/lib/security/guards'
-import { sanitizeInput } from '@/lib/security/input-sanitizer'
-import { hasFeatureAccess } from '@/lib/feature-access'
+import { sanitizeInput, sanitizeForLog } from '@/lib/security/input-sanitizer-enhanced'
+import { hasFeatureAccess } from '@/lib/auth'
 import { checkUsageLimit, incrementUsage } from '@/lib/usage'
+import { callAIQuick } from '@/lib/ai-service'
 
 const contactSchema = z.object({
   type: z.literal('contact'),
@@ -41,13 +42,8 @@ export const POST = createGuardedHandler(
     const data = crmSchema.parse(body)
     const userId = auth.user.id
 
-    const userProfile = await prisma.userApp.findUnique({
-      where: { userId },
-      select: { plan: true }
-    })
-
-    if (!userProfile || !hasFeatureAccess(userProfile.plan, 'CRM')) {
-      return NextResponse.json({ 
+    if (!hasFeatureAccess(auth.user, 'CRM')) {
+      return NextResponse.json({
         ok: false,
         code: 'FEATURE_LOCKED',
         message: 'Feature not available in your plan'
@@ -56,19 +52,17 @@ export const POST = createGuardedHandler(
 
     const usageCheck = await checkUsageLimit(userId, 'CRM')
     if (!usageCheck.allowed) {
-      return NextResponse.json({ 
-        ok: false, 
-        code: 'USAGE_LIMIT', 
+      return NextResponse.json({
+        ok: false,
+        code: 'USAGE_LIMIT',
         message: 'Usage limit reached',
-        reason: usageCheck.reason 
+        reason: usageCheck.reason
       }, { status: 402 })
     }
 
     if (data.type === 'contact') {
-      // Generate AI-powered client insights
       let aiInsights = ''
       try {
-        const { callAIService } = await import('@/lib/ai-service')
         const messages = [
           {
             role: 'system' as const,
@@ -79,58 +73,82 @@ export const POST = createGuardedHandler(
             content: `New client contact: ${data.name}. Email: ${data.email || 'Not provided'}. Phone: ${data.phone || 'Not provided'}. Notes: ${data.notes || 'None'}. Provide brief professional insights and next steps.`
           }
         ]
-        
-        const aiResponse = await callAIService(messages, userProfile.plan, 300, 0.7)
+
+        // Use AI quick for fast insights
+        const aiResponse = await callAIQuick(messages, 300, 0.7)
         aiInsights = aiResponse.content
       } catch (error) {
-        aiInsights = 'AI insights temporarily unavailable'
+        console.warn('AI insights error:', error)
       }
-      
-      const contact = await prisma.cRM.create({
-        data: {
-          userId,
-          clientName: sanitizeInput(data.name),
-          clientEmail: data.email ? sanitizeInput(data.email) : null,
-          clientPhone: data.phone ? sanitizeInput(data.phone) : null,
-          title: 'Contact',
-          description: data.notes ? sanitizeInput(data.notes) : null,
-          date: new Date(),
-          duration: 0,
-          status: 'contact'
-        }
-      })
-      
+
+      const contact = await safeDbOperation(async () => {
+        const { prisma } = await import('@/lib/prisma')
+        if (!prisma) throw new Error('Database unavailable')
+
+        return prisma.cRM.create({
+          data: {
+            userId,
+            clientName: sanitizeInput(data.name),
+            clientEmail: data.email ? sanitizeInput(data.email) : null,
+            clientPhone: data.phone ? sanitizeInput(data.phone) : null,
+            title: 'Contact',
+            description: data.notes ? sanitizeInput(data.notes) : null,
+            date: new Date(),
+            duration: 0,
+            status: 'contact'
+          }
+        })
+      }, null)
+
+      if (!contact) throw new Error('Failed to create contact')
+
       await incrementUsage(userId, 'CRM')
       return NextResponse.json({ ok: true, contact, aiInsights })
+
     } else if (data.type === 'appointment') {
       const appointmentDate = new Date(`${data.date}T${data.time}`)
-      const appointment = await prisma.cRM.create({
-        data: {
-          userId,
-          clientName: sanitizeInput(data.clientName),
-          title: data.title ? sanitizeInput(data.title) : 'Meeting',
-          description: data.description ? sanitizeInput(data.description) : null,
-          date: appointmentDate,
-          duration: 60,
-          status: 'scheduled'
-        }
-      })
-      
+      const appointment = await safeDbOperation(async () => {
+        const { prisma } = await import('@/lib/prisma')
+        if (!prisma) throw new Error('Database unavailable')
+
+        return prisma.cRM.create({
+          data: {
+            userId,
+            clientName: sanitizeInput(data.clientName),
+            title: data.title ? sanitizeInput(data.title) : 'Meeting',
+            description: data.description ? sanitizeInput(data.description) : null,
+            date: appointmentDate,
+            duration: 60,
+            status: 'scheduled'
+          }
+        })
+      }, null)
+
+      if (!appointment) throw new Error('Failed to create appointment')
+
       await incrementUsage(userId, 'CRM')
       return NextResponse.json({ ok: true, appointment })
+
     } else {
-      const task = await prisma.cRM.create({
-        data: {
-          userId,
-          clientName: data.clientName ? sanitizeInput(data.clientName) : '',
-          title: sanitizeInput(data.title),
-          description: data.description ? sanitizeInput(data.description) : null,
-          date: new Date(data.dueDate),
-          duration: 0,
-          status: data.priority
-        }
-      })
-      
+      const task = await safeDbOperation(async () => {
+        const { prisma } = await import('@/lib/prisma')
+        if (!prisma) throw new Error('Database unavailable')
+
+        return prisma.cRM.create({
+          data: {
+            userId,
+            clientName: data.clientName ? sanitizeInput(data.clientName) : '',
+            title: sanitizeInput(data.title),
+            description: data.description ? sanitizeInput(data.description) : null,
+            date: new Date(data.dueDate),
+            duration: 0,
+            status: data.priority
+          }
+        })
+      }, null)
+
+      if (!task) throw new Error('Failed to create task')
+
       await incrementUsage(userId, 'CRM')
       return NextResponse.json({ ok: true, task })
     }
@@ -140,45 +158,53 @@ export const POST = createGuardedHandler(
 
 export const GET = createGuardedHandler(
   async (_request: NextRequest, { auth }) => {
-    const crmData = await prisma.cRM.findMany({
-      where: { userId: auth.user.id },
-      orderBy: { createdAt: 'desc' }
+    const crmData = await safeDbOperation(async () => {
+      const { prisma } = await import('@/lib/prisma')
+      if (!prisma) return []
+      return prisma.cRM.findMany({
+        where: { userId: auth.user.id },
+        orderBy: { createdAt: 'desc' },
+        take: 50
+      })
+    }, [])
+
+    // Process contacts, appointments, tasks
+    const contacts: any[] = []
+    const appointments: any[] = []
+    const tasks: any[] = []
+
+    crmData.forEach((item: any) => {
+      if (item.status === 'contact') {
+        contacts.push({
+          id: item.id,
+          name: item.clientName,
+          email: item.clientEmail || '',
+          phone: item.clientPhone || '',
+          notes: item.description || '',
+          createdAt: item.createdAt.toISOString()
+        })
+      } else if (item.status === 'scheduled') {
+        appointments.push({
+          id: item.id,
+          clientName: item.clientName,
+          date: item.date.toISOString().split('T')[0],
+          time: item.date.toISOString().split('T')[1].slice(0, 5),
+          type: item.title,
+          status: 'confirmed'
+        })
+      } else {
+        tasks.push({
+          id: item.id,
+          title: item.title,
+          description: item.description || '',
+          priority: item.status,
+          status: 'pending',
+          dueDate: item.date.toISOString(),
+          clientName: item.clientName || ''
+        })
+      }
     })
-    
-    const contacts = crmData
-      .filter(item => item.status === 'contact')
-      .map(item => ({
-        id: item.id,
-        name: item.clientName,
-        email: item.clientEmail || '',
-        phone: item.clientPhone || '',
-        notes: item.description || '',
-        createdAt: item.createdAt.toISOString()
-      }))
-    
-    const appointments = crmData
-      .filter(item => item.status === 'scheduled')
-      .map(item => ({
-        id: item.id,
-        clientName: item.clientName,
-        date: item.date.toISOString().split('T')[0],
-        time: item.date.toISOString().split('T')[1].slice(0, 5),
-        type: item.title,
-        status: 'confirmed'
-      }))
-    
-    const tasks = crmData
-      .filter(item => ['low', 'medium', 'high'].includes(item.status))
-      .map(item => ({
-        id: item.id,
-        title: item.title,
-        description: item.description || '',
-        priority: item.status,
-        status: 'pending',
-        dueDate: item.date.toISOString(),
-        clientName: item.clientName || ''
-      }))
-    
+
     return NextResponse.json({ ok: true, contacts, appointments, tasks })
   },
   { requireAuth: true }

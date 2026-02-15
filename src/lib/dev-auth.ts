@@ -3,9 +3,9 @@ import { AuthUser } from './auth'
 // Development mode authentication fallback
 export function createDevUser(): AuthUser {
   return {
-    id: 'dev-user-' + Date.now(),
+    id: 'dev-user-001',
     email: 'dev@lawai.com',
-    plan: 'FREE',
+    plan: 'PRO',
     usageCount: 0,
     fullName: 'Development User'
   }
@@ -13,8 +13,9 @@ export function createDevUser(): AuthUser {
 
 // Check if we should use development mode
 export function shouldUseDevelopmentMode(): boolean {
-  return process.env.NODE_ENV === 'development' || 
-         process.env.NEXT_PUBLIC_DEMO_MODE === 'true' ||
-         !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-         process.env.NEXT_PUBLIC_SUPABASE_URL.includes('your_')
+  return process.env.NODE_ENV === 'development' ||
+    process.env.NEXT_PUBLIC_DEMO_MODE === 'true' ||
+    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL.includes('your_') ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder')
 }

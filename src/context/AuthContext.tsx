@@ -27,18 +27,49 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
+  isDevMode: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+// Check if Supabase is configured
+function isSupabaseConfigured(): boolean {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  return !!(url && key && !url.includes('placeholder') && !url.includes('your_') && !key.includes('placeholder'))
+}
+
+// Dev mode user
+const DEV_USER: User = {
+  id: 'dev-user-001',
+  email: 'demo@lawai.com',
+  user_metadata: {
+    full_name: 'Demo Lawyer',
+    plan: 'PRO',
+    avatar_url: null
+  },
+  app_metadata: {},
+  aud: 'authenticated',
+  role: 'authenticated',
+  created_at: new Date().toISOString(),
+} as any
+
+const DEV_PROFILE: UserProfile = {
+  userId: 'dev-user-001',
+  email: 'demo@lawai.com',
+  fullName: 'Demo Lawyer',
+  plan: 'PRO',
+  usageCount: 0,
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [profileLoading, setProfileLoading] = useState(false)
+  const [isDevMode] = useState(!isSupabaseConfigured())
 
   const createProfileFromUser = (user: User): UserProfile => {
-    // Only admin gets PRO plan by default, others get FREE
     const isAdmin = user.email === 'shivangibabbar0211@gmail.com'
     return {
       userId: user.id,
@@ -51,17 +82,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const refreshProfile = async () => {
+    if (isDevMode) {
+      setProfile(DEV_PROFILE)
+      return
+    }
+
     if (!user) {
       setProfile(null)
       return
     }
-    
+
     setProfileLoading(true)
-    
+
     try {
       const supabase = getSupabase()
       const { data: { session } } = await supabase.auth.getSession()
-      
+
       const response = await fetch('/api/user/profile', {
         method: 'GET',
         credentials: 'include',
@@ -70,14 +106,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           'Authorization': `Bearer ${session?.access_token || ''}`,
         }
       })
-      
+
       if (response.ok) {
         const data = await response.json()
         const profileData = data.profile || data
-        
-        console.log('Profile API Response:', data)
-        console.log('Profile Data:', profileData)
-        
+
         const newProfile: UserProfile = {
           userId: profileData.id || user.id,
           email: profileData.email || user.email || '',
@@ -89,8 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           trialEndDate: profileData.trialEndDate ? new Date(profileData.trialEndDate) : undefined,
           createdAt: profileData.createdAt ? new Date(profileData.createdAt) : undefined
         }
-        
-        console.log('Final Profile:', newProfile)
+
         setProfile(newProfile)
       } else {
         setProfile(createProfileFromUser(user))
@@ -104,15 +136,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let mounted = true
-    
+
+    // DEV MODE: Auto-login with demo user
+    if (isDevMode) {
+      setUser(DEV_USER)
+      setProfile(DEV_PROFILE)
+      setLoading(false)
+      return
+    }
+
+    // PRODUCTION: Normal Supabase auth
     const initAuth = async () => {
       try {
         const supabase = getSupabase()
         const { data: { session } } = await supabase.auth.getSession()
-        
+
         if (mounted) {
           setUser(session?.user ?? null)
-          
+
           if (session?.user) {
             const immediateProfile = createProfileFromUser(session.user)
             setProfile(immediateProfile)
@@ -120,16 +161,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } else {
             setProfile(null)
           }
-          
+
           setLoading(false)
         }
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, session) => {
             if (!mounted) return
-            
+
             setUser(session?.user ?? null)
-            
+
             if (session?.user) {
               const immediateProfile = createProfileFromUser(session.user)
               setProfile(immediateProfile)
@@ -137,28 +178,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             } else {
               setProfile(null)
             }
-            
+
             setLoading(false)
           }
         )
-        
+
         return () => {
           subscription.unsubscribe()
         }
       } catch (error) {
         console.error('Auth init error:', error)
-        if (mounted) setLoading(false)
+        if (mounted) {
+          // Fallback to dev mode if Supabase fails
+          setUser(DEV_USER)
+          setProfile(DEV_PROFILE)
+          setLoading(false)
+        }
       }
     }
 
     initAuth()
-    
+
     return () => {
       mounted = false
     }
   }, [])
 
   const signInWithGoogle = async () => {
+    if (isDevMode) {
+      // In dev mode, just set user
+      setUser(DEV_USER)
+      setProfile(DEV_PROFILE)
+      window.location.href = '/dashboard'
+      return
+    }
     const supabase = getSupabase()
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -170,16 +223,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signOut = async () => {
+    if (isDevMode) {
+      setUser(null)
+      setProfile(null)
+      window.location.href = '/'
+      return
+    }
     try {
       const supabase = getSupabase()
       await supabase.auth.signOut()
-      
+
       setUser(null)
       setProfile(null)
-      
+
       localStorage.clear()
       sessionStorage.clear()
-      
+
       window.location.href = '/'
     } catch (error) {
       console.error('Sign out error:', error)
@@ -197,7 +256,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       profileLoading,
       signInWithGoogle,
       signOut,
-      refreshProfile
+      refreshProfile,
+      isDevMode
     }}>
       {children}
     </AuthContext.Provider>

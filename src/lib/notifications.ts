@@ -165,7 +165,7 @@ class NotificationManager {
         const data = await response.json()
         this.notifications.unshift(data.notification)
         this.notifyListeners()
-        
+
         // Show browser notification if permission granted
         this.showBrowserNotification(data.notification)
       }
@@ -258,10 +258,35 @@ class NotificationManager {
     return Notification.permission === 'granted'
   }
 
-  // Real-time updates disabled to prevent console errors
+  // Real-time updates with Supabase
   startRealTimeUpdates() {
-    // SSE temporarily disabled
-    return null
+    if (!this.userId) return null
+
+    // Lazy load supabase client to avoid SSR issues
+    import('@/lib/supabase').then(({ supabase }) => {
+      const channel = supabase
+        .channel('realtime:notifications')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${this.userId}`
+          },
+          (payload) => {
+            const newNotification = payload.new as Notification
+            this.notifications.unshift(newNotification)
+            this.notifyListeners()
+            this.showBrowserNotification(newNotification)
+          }
+        )
+        .subscribe()
+
+      return channel
+    })
+
+    return null // Return channel if needed, but for now we manage it internally
   }
 }
 
@@ -275,13 +300,13 @@ export const formatNotificationTime = (timestamp: string): string => {
 
   if (diffInMinutes < 1) return 'Just now'
   if (diffInMinutes < 60) return `${diffInMinutes}m ago`
-  
+
   const diffInHours = Math.floor(diffInMinutes / 60)
   if (diffInHours < 24) return `${diffInHours}h ago`
-  
+
   const diffInDays = Math.floor(diffInHours / 24)
   if (diffInDays < 7) return `${diffInDays}d ago`
-  
+
   return notificationTime.toLocaleDateString()
 }
 

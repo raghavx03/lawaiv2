@@ -3,28 +3,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { safeDbOperation } from '@/lib/prisma'
 import { createGuardedHandler } from '@/lib/security/guards'
-import { sanitizeInput } from '@/lib/security/input-sanitizer'
-import { sanitizeForLog } from '@/lib/security/log-sanitizer'
-import { hasFeatureAccess } from '@/lib/feature-access'
-import { checkUsageLimit, incrementUsage } from '@/lib/usage'
+import { sanitizeInput } from '@/lib/security/input-sanitizer-enhanced'
+import { callAIQuick } from '@/lib/ai-service'
 
-// Mock court data for demonstration
 const mockCourtData = {
   courts: [
     'Supreme Court of India',
     'Delhi High Court',
-    'Mumbai High Court',
-    'Calcutta High Court',
+    'Bombay High Court',
     'Madras High Court',
-    'District Court Delhi',
-    'District Court Mumbai',
-    'Family Court Delhi',
-    'Sessions Court Mumbai'
+    'Karnataka High Court'
   ],
   statuses: [
-    'Filed',
-    'Pending',
-    'Under Hearing',
+    'Pending Admission',
+    'Notice Issued',
+    'Arguments Heard',
     'Judgment Reserved',
     'Disposed',
     'Dismissed',
@@ -37,40 +30,31 @@ const mockCourtData = {
     'Criminal Case',
     'Writ Petition',
     'Appeal',
-    'Revision',
-    'Bail Application',
-    'Divorce Petition',
-    'Property Dispute',
-    'Commercial Dispute'
+    'SLP',
+    'PIL'
   ]
 }
 
-// Generate mock case details
 function generateMockCaseDetails(cnr: string, partyName: string) {
-  const randomCourt = mockCourtData.courts[Math.floor(Math.random() * mockCourtData.courts.length)] || 'District Court'
-  const randomStatus = mockCourtData.statuses[Math.floor(Math.random() * mockCourtData.statuses.length)] || 'Pending'
-  const randomCaseType = mockCourtData.caseTypes[Math.floor(Math.random() * mockCourtData.caseTypes.length)] || 'Civil Suit'
-  
-  const filingDate = new Date(2023, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1)
-  const lastUpdate = new Date()
-  const nextDate = new Date()
-  nextDate.setDate(nextDate.getDate() + Math.floor(Math.random() * 30) + 1)
+  const isPending = Math.random() > 0.3
+  const nextDate = isPending ? new Date(Date.now() + Math.random() * 90 * 24 * 60 * 60 * 1000) : null
+  const filingDate = new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000)
 
   return {
-    court: randomCourt,
-    status: randomStatus,
-    caseType: randomCaseType,
+    cnrNumber: cnr || `DLHC${Math.floor(Math.random() * 1000000)}2024`,
     filingDate,
-    lastUpdate,
-    nextDate: randomStatus === 'Disposed' || randomStatus === 'Dismissed' ? null : nextDate,
+    registrationDate: new Date(filingDate.getTime() + 7 * 24 * 60 * 60 * 1000),
+    nextHearingDate: nextDate,
+    status: isPending ? mockCourtData.statuses[Math.floor(Math.random() * 4)] : 'Disposed',
+    courtName: mockCourtData.courts[Math.floor(Math.random() * mockCourtData.courts.length)],
+    caseType: mockCourtData.caseTypes[Math.floor(Math.random() * mockCourtData.caseTypes.length)],
+    petitioner: partyName,
+    respondent: 'State / Others',
+    judge: 'Honorable Justice S. Kumar',
     details: {
-      cnr: cnr || `AUTO-${Date.now()}`,
-      partyName: partyName || 'Unknown Party',
-      judge: `Hon'ble Justice ${['Sharma', 'Gupta', 'Singh', 'Patel', 'Kumar'][Math.floor(Math.random() * 5)]}`,
-      section: `Section ${Math.floor(Math.random() * 500) + 1}`,
-      stage: randomStatus === 'Disposed' ? 'Final Order' : 'Interim Application',
-      hearings: Math.floor(Math.random() * 10) + 1,
-      documents: Math.floor(Math.random() * 20) + 5
+      stage: 'Arguments',
+      act: 'IPC Section 420',
+      bench: 'Single Bench'
     }
   }
 }
@@ -88,108 +72,86 @@ export const POST = createGuardedHandler(
     const userId = auth.user.id
 
     if (!cnr && !partyName) {
-      return NextResponse.json({ error: 'CNR or Party Name is required' }, { status: 400 })
+      return NextResponse.json({ ok: false, message: 'Please provide CNR number or Party Name' }, { status: 400 })
     }
 
-    // Sanitize inputs
-    const sanitizedCnr = cnr ? sanitizeInput(cnr.toString()).trim() : null
-    const sanitizedPartyName = partyName ? sanitizeInput(partyName.toString()).trim() : null
+    const sanitizedCnr = cnr ? sanitizeInput(cnr) : ''
+    const sanitizedPartyName = partyName ? sanitizeInput(partyName) : ''
 
-    // Check if case already exists with sanitized inputs
-    const whereConditions: any[] = []
-    if (sanitizedCnr) {
-      whereConditions.push({ cnr: { equals: sanitizedCnr, mode: 'insensitive' as const } })
-    }
-    if (sanitizedPartyName) {
-      whereConditions.push({ partyName: { contains: sanitizedPartyName, mode: 'insensitive' as const } })
+    // Generate case analysis using AI
+    let aiAnalysis = ''
+    try {
+      const messages = [
+        {
+          role: 'system' as const,
+          content: 'You are a legal analyst. Provide a brief analysis of potential next steps for a court case based on its current status.'
+        },
+        {
+          role: 'user' as const,
+          content: `Analyze case status: ${mockCourtData.statuses[0]}. Case Type: ${mockCourtData.caseTypes[0]}. Provide 2 bullet points on likely next steps.`
+        }
+      ]
+
+      const aiResponse = await callAIQuick(messages, 500, 0.5)
+      aiAnalysis = aiResponse.content
+    } catch (e) {
+      aiAnalysis = 'Analysis pending...'
     }
 
-    const existingCase = whereConditions.length > 0 ? await safeDbOperation(async () => {
+    // Mock e-courts data fetch (simulated)
+    const finalCnr = sanitizedCnr || `AUTO-${Date.now()}`
+    const finalPartyName = sanitizedPartyName || 'Unknown Party'
+    const mockDetails = generateMockCaseDetails(finalCnr, finalPartyName)
+
+    // Check if case already tracked
+    const existingCase = await safeDbOperation(async () => {
       const { prisma } = await import('@/lib/prisma')
-      if (!prisma) throw new Error('Database unavailable')
-      
-      return await prisma.caseTracker.findFirst({
+      if (!prisma) return null
+
+      return prisma.caseTracker.findFirst({
         where: {
-          AND: [
-            { userId },
-            { OR: whereConditions }
-          ]
+          userId,
+          cnr: finalCnr
         }
       })
-    }, null) : null
+    }, null)
 
     if (existingCase) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         case: existingCase,
         message: 'Case already being tracked'
       })
     }
 
-    // Generate case analysis using AI
-    let aiAnalysis = ''
-    try {
-      const { callAIService } = await import('@/lib/ai-service')
-      const messages = [
-        {
-          role: 'system' as const,
-          content: 'You are a legal case analysis expert. Provide brief insights about case types, potential legal issues, and procedural guidance based on case information.'
-        },
-        {
-          role: 'user' as const,
-          content: `Analyze this case: CNR: ${sanitizedCnr || 'Not provided'}, Party: ${sanitizedPartyName || 'Not provided'}. Provide brief legal insights and case type prediction.`
-        }
-      ]
-      
-      const aiResponse = await callAIService(messages, userProfile.plan, 400, 0.6)
-      aiAnalysis = aiResponse.content
-    } catch (error) {
-      aiAnalysis = 'AI case analysis temporarily unavailable'
-    }
-    
-    // Generate mock case details (in real implementation, this would call eCourts API)
-    const finalCnr = sanitizedCnr || `AUTO-${Date.now()}`
-    const finalPartyName = sanitizedPartyName || 'Unknown Party'
-    const mockDetails = generateMockCaseDetails(finalCnr, finalPartyName)
-    mockDetails.details.aiAnalysis = aiAnalysis
-    
+    // Save tracked case complying with schema
     const courtCase = await safeDbOperation(async () => {
       const { prisma } = await import('@/lib/prisma')
       if (!prisma) throw new Error('Database unavailable')
-      
+
       return await prisma.caseTracker.create({
         data: {
-          cnr: finalCnr,
-          partyName: finalPartyName,
-          court: mockDetails.court,
+          userId,
+          cnr: mockDetails.cnrNumber,
+          partyName: mockDetails.petitioner,
+          court: mockDetails.courtName,
           status: mockDetails.status,
-          lastUpdate: mockDetails.lastUpdate,
-          nextDate: mockDetails.nextDate,
-          userId: userId,
+          nextDate: mockDetails.nextHearingDate,
+          lastUpdate: new Date(),
           details: {
+            filingDate: mockDetails.filingDate,
+            registrationDate: mockDetails.registrationDate,
+            respondent: mockDetails.respondent,
+            judge: mockDetails.judge,
             ...mockDetails.details,
-            caseType: mockDetails.caseType,
-            filingDate: mockDetails.filingDate.toISOString(),
-            searchType: sanitizeInput(searchType)
-          }
+            aiAnalysis
+          } as any // Use as any to bypass strict JSON type check if needed
         }
       })
-    }, {
-      id: 'fallback',
-      cnr: finalCnr,
-      partyName: finalPartyName,
-      court: mockDetails.court,
-      status: mockDetails.status,
-      lastUpdate: mockDetails.lastUpdate,
-      nextDate: mockDetails.nextDate,
-      userId: userId,
-      details: mockDetails.details,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    })
+    }, null)
 
-    // Skip usage increment
+    if (!courtCase) throw new Error('Failed to track case')
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       ok: true,
       case: courtCase,
       message: 'Case added to tracking successfully'
@@ -198,55 +160,34 @@ export const POST = createGuardedHandler(
   { requireAuth: true, requireCSRF: false }
 )
 
-
-
 export const GET = createGuardedHandler(
   async (request: NextRequest, { auth }) => {
     const { searchParams } = new URL(request.url)
     const cnr = searchParams.get('cnr')
-    const partyName = searchParams.get('partyName')
-    const status = searchParams.get('status')
-    const court = searchParams.get('court')
-
-    const whereClause: any = { userId: auth.user.id }
-    
-    if (cnr) {
-      whereClause.cnr = { contains: sanitizeInput(cnr), mode: 'insensitive' as const }
-    }
-    
-    if (partyName) {
-      whereClause.partyName = { contains: sanitizeInput(partyName), mode: 'insensitive' as const }
-    }
-    
-    if (status && mockCourtData.statuses.includes(status)) {
-      whereClause.status = status
-    }
-    
-    if (court) {
-      whereClause.court = { contains: sanitizeInput(court), mode: 'insensitive' as const }
-    }
 
     const cases = await safeDbOperation(async () => {
       const { prisma } = await import('@/lib/prisma')
-      if (!prisma) throw new Error('Database unavailable')
-      
-      return await prisma.caseTracker.findMany({
-        where: whereClause,
-        orderBy: { lastUpdate: 'desc' },
-        take: 50
+      if (!prisma) return []
+
+      const where: any = { userId: auth.user.id }
+      if (cnr) where.cnr = cnr
+
+      return prisma.caseTracker.findMany({
+        where,
+        orderBy: { updatedAt: 'desc' }
       })
     }, [])
 
     const stats = {
       total: cases.length,
-      pending: cases.filter((c: any) => ['Filed', 'Pending', 'Under Hearing'].includes(c.status)).length,
+      active: cases.filter((c: any) => !['Disposed', 'Dismissed', 'Allowed'].includes(c.status)).length,
       disposed: cases.filter((c: any) => ['Disposed', 'Dismissed', 'Allowed'].includes(c.status)).length,
       nextHearing: cases.filter((c: any) => c.nextDate && new Date(c.nextDate) > new Date()).length
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       ok: true,
-      cases, 
+      cases,
       stats,
       courts: mockCourtData.courts,
       statuses: mockCourtData.statuses

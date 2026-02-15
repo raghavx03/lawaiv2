@@ -415,11 +415,11 @@ export async function generateDocument(type: string, inputs: Record<string, stri
   }
 
   console.log('🔧 Generating document with inputs:', inputs)
-  
+
   // Enhanced template replacement with better data mapping
   let document = template.template
   const currentDate = new Date()
-  
+
   // Add intelligent defaults based on document type
   const enhancedInputs = {
     ...inputs,
@@ -428,17 +428,17 @@ export async function generateDocument(type: string, inputs: Record<string, stri
     currentMonth: currentDate.toLocaleDateString('en-IN', { month: 'long' }),
     currentYear: currentDate.getFullYear().toString()
   }
-  
+
   // Document-specific intelligent filling
   if (type === 'rent') {
-    enhancedInputs.endDate = enhancedInputs.startDate ? 
-      new Date(new Date(enhancedInputs.startDate).getTime() + (parseInt(enhancedInputs.leasePeriod || '11') * 30 * 24 * 60 * 60 * 1000)).toLocaleDateString('en-IN') : 
+    enhancedInputs.endDate = enhancedInputs.startDate ?
+      new Date(new Date(enhancedInputs.startDate).getTime() + (parseInt(enhancedInputs.leasePeriod || '11') * 30 * 24 * 60 * 60 * 1000)).toLocaleDateString('en-IN') :
       '_____________'
     enhancedInputs.rentDueDate = '5th'
     enhancedInputs.noticePeriod = '30'
     enhancedInputs.jurisdiction = 'Delhi'
   }
-  
+
   if (type === 'sale') {
     const amount = parseInt(enhancedInputs.saleAmount || '0')
     const advance = parseInt(enhancedInputs.advanceAmount || '0')
@@ -447,16 +447,16 @@ export async function generateDocument(type: string, inputs: Record<string, stri
     enhancedInputs.advanceAmountWords = numberToWords(advance)
     enhancedInputs.balanceAmountWords = numberToWords(amount - advance)
   }
-  
+
   if (type === 'loan') {
     const amount = parseInt(enhancedInputs.loanAmount || '0')
     const rate = parseFloat(enhancedInputs.interestRate || '12')
     const tenure = parseInt(enhancedInputs.numberOfInstallments || '12')
-    const emi = Math.round((amount * rate * Math.pow(1 + rate/100/12, tenure)) / (Math.pow(1 + rate/100/12, tenure) - 1))
+    const emi = Math.round((amount * rate * Math.pow(1 + rate / 100 / 12, tenure)) / (Math.pow(1 + rate / 100 / 12, tenure) - 1))
     enhancedInputs.emiAmount = emi.toString()
     enhancedInputs.loanAmountWords = numberToWords(amount)
   }
-  
+
   // Replace all placeholders with enhanced data
   for (const [key, value] of Object.entries(enhancedInputs)) {
     if (value && value.trim()) {
@@ -464,42 +464,29 @@ export async function generateDocument(type: string, inputs: Record<string, stri
       document = document.replace(regex, value)
     }
   }
-  
-  // Try AI enhancement if API key available
+
+  // Try AI enhancement if NVIDIA API key available
   try {
-    if (process.env.GEMINI_API_KEY) {
-      const { GoogleGenerativeAI } = await import('@google/generative-ai')
-      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+    if (process.env.NVIDIA_LLAMA_API_KEY) {
+      const { callAIQuick } = await import('@/lib/ai-service')
 
-      const prompt = `Enhance this ${template.name} document by filling remaining blanks intelligently:
+      const aiResponse = await callAIQuick([
+        { role: 'system', content: 'You are a legal document specialist. Fill remaining blanks in legal documents with appropriate content. Return ONLY the complete document.' },
+        { role: 'user', content: `Enhance this ${template.name} document by filling remaining blanks intelligently:\n\n${document}\n\nUser provided data:\n${Object.entries(inputs).map(([k, v]) => `${k}: ${v}`).join('\n')}\n\nFill any remaining blanks with appropriate legal content. Keep the legal format intact. Return ONLY the complete document.` }
+      ], 4096, 0.5)
 
-${document}
-
-User provided data:
-${Object.entries(inputs).map(([k, v]) => `${k}: ${v}`).join('\n')}
-
-Instructions:
-1. Fill any remaining blanks with appropriate legal content
-2. Ensure all user data is properly integrated
-3. Keep the legal format intact
-4. Return ONLY the complete document`
-
-      const result = await model.generateContent(prompt)
-      const aiEnhanced = result.response.text()
-      
-      if (aiEnhanced && aiEnhanced.length > document.length * 0.8) {
-        document = aiEnhanced
+      if (aiResponse.content && aiResponse.content.length > document.length * 0.8) {
+        document = aiResponse.content
       }
     }
   } catch (error) {
     console.warn('AI enhancement failed:', error)
   }
-  
+
   // Final cleanup - replace any remaining placeholders
   document = document.replace(/\{[^}]+\}/g, '_____________')
   document = document.replace(/_____+/g, '_____________')
-  
+
   console.log('✅ Document generated successfully')
   return document
 }
@@ -507,17 +494,17 @@ Instructions:
 // Helper function to convert numbers to words
 function numberToWords(num: number): string {
   if (num === 0) return 'Zero'
-  
+
   const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine']
   const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen']
   const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety']
-  
+
   if (num < 10) return ones[num]
   if (num < 20) return teens[num - 10]
   if (num < 100) return tens[Math.floor(num / 10)] + (num % 10 ? ' ' + ones[num % 10] : '')
   if (num < 1000) return ones[Math.floor(num / 100)] + ' Hundred' + (num % 100 ? ' ' + numberToWords(num % 100) : '')
   if (num < 100000) return numberToWords(Math.floor(num / 1000)) + ' Thousand' + (num % 1000 ? ' ' + numberToWords(num % 1000) : '')
   if (num < 10000000) return numberToWords(Math.floor(num / 100000)) + ' Lakh' + (num % 100000 ? ' ' + numberToWords(num % 100000) : '')
-  
+
   return numberToWords(Math.floor(num / 10000000)) + ' Crore' + (num % 10000000 ? ' ' + numberToWords(num % 10000000) : '')
 }

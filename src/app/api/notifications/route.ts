@@ -1,55 +1,90 @@
+
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerUser } from '@/lib/auth'
+import { safeDbOperation } from '@/lib/prisma'
+import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
 
-// GET - Fetch notifications (returns empty array when DB is unavailable)
+const notificationSchema = z.object({
+  title: z.string().min(1),
+  message: z.string().min(1),
+  type: z.enum(['info', 'success', 'warning', 'error', 'welcome', 'feature', 'payment', 'system']).default('info'),
+  category: z.enum(['system', 'user', 'payment', 'feature', 'security']).default('system'),
+  userId: z.string().uuid().optional(),
+  actionUrl: z.string().optional(),
+  metadata: z.record(z.any()).optional()
+})
+
 export async function GET(request: NextRequest) {
   try {
-    // Return empty notifications to prevent errors when DB is unavailable
-    return NextResponse.json({ 
-      notifications: [],
+    const user = await getServerUser()
+    if (!user) {
+      return NextResponse.json({ notifications: [], ok: true })
+    }
+
+    const notifications = await safeDbOperation(async () => {
+      const { prisma } = await import('@/lib/prisma')
+      if (!prisma) return []
+
+      return prisma.notification.findMany({
+        where: { userId: user.id },
+        orderBy: { createdAt: 'desc' },
+        take: 50
+      })
+    }, [])
+
+    return NextResponse.json({
+      notifications,
       ok: true
     })
   } catch (error) {
     console.error('Notifications API error:', error)
-    return NextResponse.json({ 
-      notifications: [],
-      ok: true 
-    })
+    return NextResponse.json({ error: 'Failed' }, { status: 500 })
   }
 }
 
-// POST - Create notification (gracefully handles DB unavailability)
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { title, message, type, userId } = body
+    const { title, message, type, category, userId, actionUrl, metadata } = notificationSchema.parse(body)
 
-    if (!title || !message) {
-      return NextResponse.json({ 
-        ok: false, 
-        error: 'Missing required fields' 
-      }, { status: 400 })
+    let targetUserId = userId
+    if (!targetUserId) {
+      const user = await getServerUser()
+      if (user) targetUserId = user.id
     }
 
-    // For now, just acknowledge the notification
-    // When DB is available, this would save to database
+    if (!targetUserId) {
+      return NextResponse.json({ error: 'User ID required' }, { status: 400 })
+    }
+
+    const notification = await safeDbOperation(async () => {
+      const { prisma } = await import('@/lib/prisma')
+      if (!prisma) throw new Error('DB unavailable')
+
+      return prisma.notification.create({
+        data: {
+          userId: targetUserId!,
+          title,
+          message,
+          type: type as any,
+          read: false,
+          actionUrl,
+          metadata: {
+            ...metadata,
+            category
+          }
+        }
+      })
+    }, null)
+
     return NextResponse.json({
       ok: true,
-      notification: {
-        id: `temp-${Date.now()}`,
-        title,
-        message,
-        type: type || 'info',
-        timestamp: new Date().toISOString(),
-        read: false
-      }
+      notification
     })
   } catch (error) {
     console.error('Create notification error:', error)
-    return NextResponse.json({ 
-      ok: false, 
-      error: 'Failed to create notification' 
-    }, { status: 500 })
+    return NextResponse.json({ ok: false, error: 'Failed' }, { status: 500 })
   }
 }

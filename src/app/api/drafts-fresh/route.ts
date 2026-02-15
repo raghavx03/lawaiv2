@@ -4,19 +4,20 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     console.log('🔥 FRESH API - Received:', body)
-    
+
     const { type, inputs } = body
     const currentDate = new Date().toLocaleDateString('en-IN')
-    
-    // Use Gemini AI to generate document with user data
-    let content = ''
-    
-    try {
-      const { GoogleGenerativeAI } = await import('@google/generative-ai')
-      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'AIzaSyDummy')
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
 
-      const prompt = `Generate a professional ${type === 'sale' ? 'Sale Deed' : type === 'rent' ? 'Rental Agreement' : 'Legal Document'} using this user data:
+    // Use NVIDIA AI to generate document with user data
+    let content = ''
+
+    try {
+      const { callAIQuick } = await import('@/lib/ai-service')
+
+      const aiResponse = await callAIQuick([
+        { role: 'system', content: 'You are a legal document specialist. Generate professional Indian legal documents with all user data properly filled in. Return ONLY the complete document text.' },
+        {
+          role: 'user', content: `Generate a professional ${type === 'sale' ? 'Sale Deed' : type === 'rent' ? 'Rental Agreement' : 'Legal Document'} using this user data:
 
 User Data:
 ${Object.entries(inputs).map(([key, value]) => `${key}: ${value}`).join('\n')}
@@ -29,16 +30,15 @@ Instructions:
 5. Replace all placeholders with actual user data
 6. If any data is missing, use appropriate legal language
 
-Generate the complete document now:`
+Generate the complete document now:` }
+      ], 4096, 0.5)
 
-      const result = await model.generateContent(prompt)
-      content = result.response.text()
-      
-      console.log('✅ Gemini generated document, length:', content.length)
-      
+      content = aiResponse.content
+      console.log('✅ AI generated document, length:', content.length)
+
     } catch (aiError) {
-      console.warn('❌ Gemini failed, using fallback:', aiError)
-      
+      console.warn('❌ AI failed, using fallback:', aiError)
+
       // Fallback template with user data
       if (type === 'sale') {
         content = `SALE DEED
@@ -121,7 +121,7 @@ ${Object.entries(inputs).map(([key, value]) => `${key}: ${value}`).join('\n')}
 This document contains all the user-provided information above.`
       }
     }
-    
+
     const response = NextResponse.json({
       ok: true,
       content,
@@ -129,13 +129,13 @@ This document contains all the user-provided information above.`
       message: 'Document generated with user data',
       userDataCount: Object.keys(inputs).length
     })
-    
+
     response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
     response.headers.set('Pragma', 'no-cache')
     response.headers.set('Expires', '0')
-    
+
     return response
-    
+
   } catch (error) {
     console.error('🔥 FRESH API Error:', error)
     return NextResponse.json({

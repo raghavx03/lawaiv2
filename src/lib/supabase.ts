@@ -4,15 +4,23 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
 let supabaseInstance: SupabaseClient | null = null
 
-export function getSupabase(): SupabaseClient {
-  if (supabaseInstance) return supabaseInstance
-  
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+// Check if Supabase is properly configured
+function isSupabaseConfigured(): boolean {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  return !!(url && key && !url.includes('placeholder') && !key.includes('placeholder'))
+}
 
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Missing Supabase environment variables')
+export function getSupabase(): SupabaseClient | null {
+  if (supabaseInstance) return supabaseInstance
+
+  if (!isSupabaseConfigured()) {
+    console.warn('Supabase not configured — running in dev mode without auth')
+    return null
   }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
   supabaseInstance = createClient(supabaseUrl, supabaseKey, {
     auth: {
@@ -22,13 +30,24 @@ export function getSupabase(): SupabaseClient {
       storage: typeof window !== 'undefined' ? window.localStorage : undefined
     }
   })
-  
+
   return supabaseInstance
 }
 
-// For backward compatibility - lazy getter
+// For backward compatibility — lazy getter with null safety
 export const supabase = new Proxy({} as SupabaseClient, {
   get(_, prop) {
-    return (getSupabase() as any)[prop]
+    const instance = getSupabase()
+    if (!instance) {
+      // Return no-op functions for dev mode
+      if (typeof prop === 'string') {
+        return (..._args: any[]) => ({
+          data: null,
+          error: { message: 'Supabase not configured (dev mode)' }
+        })
+      }
+      return undefined
+    }
+    return (instance as any)[prop]
   }
 })

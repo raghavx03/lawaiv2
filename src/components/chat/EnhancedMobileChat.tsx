@@ -49,7 +49,7 @@ export function EnhancedMobileChat() {
   const [isRecording, setIsRecording] = useState(false)
   const [showAttachments, setShowAttachments] = useState(false)
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -57,7 +57,7 @@ export function EnhancedMobileChat() {
   // Auto-scroll to bottom
   const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ 
+      messagesEndRef.current.scrollIntoView({
         behavior: 'auto',
         block: 'end'
       })
@@ -77,13 +77,13 @@ export function EnhancedMobileChat() {
           'Content-Type': 'application/json'
         }
       })
-      
+
       console.log('Sessions API response:', response.status)
-      
+
       if (response.ok) {
         const data = await response.json()
         console.log('Sessions data:', data)
-        
+
         if (data.ok && data.sessions) {
           const formattedSessions = data.sessions.map((s: any) => ({
             ...s,
@@ -94,13 +94,13 @@ export function EnhancedMobileChat() {
               timestamp: new Date(m.timestamp)
             })) || []
           }))
-          
+
           console.log('Setting sessions:', formattedSessions.length)
           setSessions(formattedSessions)
           return
         }
       }
-      
+
       console.log('Database failed, using localStorage fallback')
       // Fallback to localStorage
       const saved = localStorage.getItem('lawai-chat-sessions')
@@ -144,7 +144,7 @@ export function EnhancedMobileChat() {
     try {
       // Save to localStorage first (immediate)
       localStorage.setItem('lawai-chat-sessions', JSON.stringify(sessionsToSave))
-      
+
       // Try to save to database (background)
       const latestSession = sessionsToSave[0]
       if (latestSession) {
@@ -179,7 +179,7 @@ export function EnhancedMobileChat() {
       createdAt: new Date(),
       updatedAt: new Date()
     }
-    
+
     setCurrentSession(newSession)
     setMessages([])
     setSessions(prev => {
@@ -200,7 +200,7 @@ export function EnhancedMobileChat() {
   // Auto-resize textarea
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value)
-    
+
     // Auto-resize
     const textarea = e.target
     const newHeight = Math.min(Math.max(textarea.scrollHeight, 44), 120)
@@ -226,11 +226,11 @@ export function EnhancedMobileChat() {
   // Send message
   const handleSend = useCallback(async () => {
     if (!input.trim() || isStreaming) return
-    
+
     const message = input.trim()
     setInput('')
     setTextareaHeight(44)
-    
+
     // Create session if none exists
     let workingSession = currentSession
     if (!workingSession) {
@@ -254,7 +254,7 @@ export function EnhancedMobileChat() {
     // Add user message
     const updatedMessages = [...messages, userMessage]
     setMessages(updatedMessages)
-    
+
     setIsStreaming(true)
     setStreamingMessage('')
 
@@ -275,7 +275,7 @@ export function EnhancedMobileChat() {
       }
 
       const data = await response.json()
-      
+
       if (data.ok && data.message) {
         const assistantMessage: Message = {
           id: `assistant-${Date.now()}`,
@@ -286,7 +286,7 @@ export function EnhancedMobileChat() {
 
         const finalMessages = [...updatedMessages, assistantMessage]
         setMessages(finalMessages)
-        
+
         // Update session
         const finalSession = {
           ...workingSession,
@@ -294,9 +294,9 @@ export function EnhancedMobileChat() {
           messages: finalMessages,
           updatedAt: new Date()
         }
-        
+
         setCurrentSession(finalSession)
-        
+
         // Update sessions list
         setSessions(prev => {
           const existingIndex = prev.findIndex(s => s.id === finalSession.id)
@@ -315,7 +315,7 @@ export function EnhancedMobileChat() {
       }
     } catch (error) {
       console.error('Streaming error')
-      
+
       // Add error message
       const errorMessage: Message = {
         id: `error-${Date.now()}`,
@@ -353,7 +353,7 @@ export function EnhancedMobileChat() {
         recorder.onstop = async () => {
           const audioBlob = new Blob(audioChunks, { type: 'audio/wav' })
           setInput(prev => prev + '[Voice message recorded]')
-          
+
           // Stop all tracks
           stream.getTracks().forEach(track => track.stop())
         }
@@ -380,7 +380,7 @@ export function EnhancedMobileChat() {
     <div className="flex h-full chat-theme relative overflow-hidden chat-container">
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 md:hidden"
           onClick={() => setSidebarOpen(false)}
         />
@@ -392,56 +392,55 @@ export function EnhancedMobileChat() {
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `} style={{ backgroundColor: document.documentElement.classList.contains('dark') ? '#111827' : '#ffffff', borderRight: document.documentElement.classList.contains('dark') ? '1px solid #374151' : '1px solid #e5e7eb', backdropFilter: 'none' }}>
         <div className="flex flex-col h-full" style={{ backgroundColor: document.documentElement.classList.contains('dark') ? '#111827' : '#ffffff' }}>
-            {/* Sidebar Header */}
-            <div className="p-4 border-b" style={{ backgroundColor: document.documentElement.classList.contains('dark') ? '#111827' : '#ffffff', borderBottomColor: document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb' }}>
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center">
-                  <span className="text-lg font-bold text-white">R</span>
-                </div>
-                <div>
-                  <h2 className="font-semibold text-foreground">RAGS</h2>
-                  <p className="text-xs text-muted-foreground">Legal AI Assistant</p>
-                </div>
+          {/* Sidebar Header */}
+          <div className="p-4 border-b" style={{ backgroundColor: document.documentElement.classList.contains('dark') ? '#111827' : '#ffffff', borderBottomColor: document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb' }}>
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center">
+                <span className="text-lg font-bold text-white">R</span>
               </div>
-              
-              <Button
-                onClick={createNewSession}
-                className="w-full bg-green-600 hover:bg-green-700 text-white"
-                size="sm"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                New Chat
-              </Button>
+              <div>
+                <h2 className="font-semibold text-foreground">RAGS</h2>
+                <p className="text-xs text-muted-foreground">Legal AI Assistant</p>
+              </div>
             </div>
 
-            {/* Chat Sessions */}
-            <ScrollArea className="flex-1 p-2" style={{ backgroundColor: document.documentElement.classList.contains('dark') ? '#111827' : '#ffffff' }}>
-              <div className="space-y-1">
-                {sessions.map((session) => (
-                  <div
-                    key={session.id}
-                    className={`p-3 rounded-lg cursor-pointer transition-all duration-200 ${
-                      currentSession?.id === session.id
-                        ? 'bg-green-600/20 border border-green-600/30'
-                        : 'hover:bg-muted/50'
+            <Button
+              onClick={createNewSession}
+              className="w-full bg-green-600 hover:bg-green-700 text-white"
+              size="sm"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              New Chat
+            </Button>
+          </div>
+
+          {/* Chat Sessions */}
+          <ScrollArea className="flex-1 p-2" style={{ backgroundColor: document.documentElement.classList.contains('dark') ? '#111827' : '#ffffff' }}>
+            <div className="space-y-1">
+              {sessions.map((session) => (
+                <div
+                  key={session.id}
+                  className={`p-3 rounded-lg cursor-pointer transition-all duration-200 ${currentSession?.id === session.id
+                    ? 'bg-green-600/20 border border-green-600/30'
+                    : 'hover:bg-muted/50'
                     }`}
-                    onClick={() => selectSession(session)}
-                  >
-                    <h3 className="text-sm font-medium text-foreground truncate">
-                      {session.title}
-                    </h3>
-                    <div className="flex items-center justify-between mt-1">
-                      <p className="text-xs text-muted-foreground">
-                        {session.messages.length} messages
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {new Date(session.updatedAt).toLocaleDateString()}
-                      </p>
-                    </div>
+                  onClick={() => selectSession(session)}
+                >
+                  <h3 className="text-sm font-medium text-foreground truncate">
+                    {session.title}
+                  </h3>
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-xs text-muted-foreground">
+                      {session.messages.length} messages
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(session.updatedAt).toLocaleDateString()}
+                    </p>
                   </div>
-                ))}
-              </div>
-            </ScrollArea>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
         </div>
       </div>
 
@@ -458,7 +457,7 @@ export function EnhancedMobileChat() {
             >
               <Menu className="h-5 w-5" />
             </Button>
-            
+
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center">
                 <Bot className="h-4 w-4 text-white" />
@@ -485,7 +484,7 @@ export function EnhancedMobileChat() {
         </div>
 
         {/* Messages */}
-        <ScrollArea className="flex-1 p-4 bg-background" style={{ scrollBehavior: 'auto', pointerEvents: isStreaming ? 'none' : 'auto' }}>
+        <ScrollArea className="flex-1 p-4 bg-background" style={{ scrollBehavior: 'auto' }}>
           <div className="space-y-4 max-w-4xl mx-auto">
             {/* Welcome Message */}
             {messages.length === 0 && !isStreaming && (
@@ -495,7 +494,7 @@ export function EnhancedMobileChat() {
                 </div>
                 <h2 className="text-xl font-semibold mb-2 text-foreground">Welcome to Legal AI Assistant</h2>
                 <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                  I can help you with legal questions, document analysis, case research, and more. 
+                  I can help you with legal questions, document analysis, case research, and more.
                   How can I assist you today?
                 </p>
               </div>
@@ -508,16 +507,14 @@ export function EnhancedMobileChat() {
                 className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} animate-message-appear`}
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
-                <div className={`flex max-w-[85%] md:max-w-[70%] ${
-                  message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
-                } space-x-3`}>
+                <div className={`flex max-w-[85%] md:max-w-[70%] ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
+                  } space-x-3`}>
                   {/* Avatar */}
                   <div className={`flex-shrink-0 ${message.role === 'user' ? 'ml-3' : 'mr-3'}`}>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      message.role === 'user' 
-                        ? 'bg-green-600' 
-                        : 'bg-gray-300 dark:bg-gray-700'
-                    }`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${message.role === 'user'
+                      ? 'bg-green-600'
+                      : 'bg-gray-300 dark:bg-gray-700'
+                      }`}>
                       {message.role === 'user' ? (
                         <User className="h-4 w-4 text-white" />
                       ) : (
@@ -528,22 +525,20 @@ export function EnhancedMobileChat() {
 
                   {/* Message Content */}
                   <div className={`${message.role === 'user' ? 'text-right' : 'text-left'}`}>
-                    <div className={`inline-block p-3 rounded-2xl message-bubble mobile-optimized ${
-                      message.role === 'user'
-                        ? 'bg-green-600 text-white rounded-br-md shadow-lg'
-                        : 'chat-message-theme rounded-bl-md shadow-md'
-                    }`}>
+                    <div className={`inline-block p-3 rounded-2xl message-bubble mobile-optimized ${message.role === 'user'
+                      ? 'bg-green-600 text-white rounded-br-md shadow-lg'
+                      : 'chat-message-theme rounded-bl-md shadow-md'
+                      }`}>
                       <div className="whitespace-pre-wrap text-sm leading-relaxed break-words">
                         {message.content}
                       </div>
                     </div>
-                    
-                    <div className={`text-xs text-gray-500 mt-1 ${
-                      message.role === 'user' ? 'text-right' : 'text-left'
-                    }`}>
-                      {new Date(message.timestamp).toLocaleTimeString([], { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
+
+                    <div className={`text-xs text-gray-500 mt-1 ${message.role === 'user' ? 'text-right' : 'text-left'
+                      }`}>
+                      {new Date(message.timestamp).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit'
                       })}
                     </div>
                   </div>
@@ -588,7 +583,7 @@ export function EnhancedMobileChat() {
                 </div>
               </div>
             )}
-            
+
             <div ref={messagesEndRef} />
           </div>
         </ScrollArea>
@@ -650,11 +645,10 @@ export function EnhancedMobileChat() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className={`h-10 w-10 p-0 rounded-full transition-all touch-feedback ${
-                    isRecording 
-                      ? 'bg-red-600 hover:bg-red-700 text-white' 
-                      : 'hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'
-                  }`}
+                  className={`h-10 w-10 p-0 rounded-full transition-all touch-feedback ${isRecording
+                    ? 'bg-red-600 hover:bg-red-700 text-white'
+                    : 'hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'
+                    }`}
                   onClick={handleVoiceToggle}
                   disabled={isStreaming}
                 >
@@ -675,7 +669,7 @@ export function EnhancedMobileChat() {
                     placeholder="Ask me anything about law, legal documents, or case research..."
                     className="resize-none border-0 bg-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-0 focus:outline-none text-base leading-relaxed mobile-textarea"
                     style={{ height: `${textareaHeight}px`, fontSize: '16px' }}
-                    disabled={isStreaming || isRecording}
+                    disabled={isRecording}
                     rows={1}
                   />
                 </div>
@@ -695,24 +689,25 @@ export function EnhancedMobileChat() {
                 <Button
                   onClick={handleSend}
                   disabled={!input.trim() || isStreaming || isRecording}
-                  className={`h-10 w-10 p-0 rounded-full transition-all touch-feedback ${
-                    input.trim() && !isStreaming && !isRecording
-                      ? 'bg-green-600 hover:bg-green-700 text-white scale-100'
-                      : 'bg-gray-400 dark:bg-gray-600 text-gray-600 dark:text-gray-400 scale-95'
-                  }`}
+                  className={`h-10 w-10 p-0 rounded-full transition-all touch-feedback ${input.trim() && !isStreaming && !isRecording
+                    ? 'bg-green-600 hover:bg-green-700 text-white scale-100'
+                    : 'bg-gray-400 dark:bg-gray-600 text-gray-600 dark:text-gray-400 scale-95'
+                    }`}
                 >
                   <Send className="h-5 w-5" />
                 </Button>
               </div>
             </div>
-            
+
             {/* Compact Helper Text */}
             <div className="mt-2 text-xs text-muted-foreground text-center px-2">
               {isRecording ? (
                 <span className="text-red-500">🎤 Recording...</span>
               ) : (
-                <span className="hidden sm:inline">Enter to send • AI can make mistakes</span>
-                <span className="sm:hidden">AI can make mistakes</span>
+                <>
+                  <span className="hidden sm:inline">Enter to send • AI can make mistakes</span>
+                  <span className="sm:hidden">AI can make mistakes</span>
+                </>
               )}
             </div>
 

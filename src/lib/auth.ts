@@ -2,6 +2,7 @@ import { createServerSupabaseClient } from './supabase-server'
 import { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { getServerUserFallback, hasFeatureAccessFallback } from './auth-fallback'
+import { shouldUseDevelopmentMode, createDevUser } from './dev-auth'
 
 export interface AuthUser {
   id: string
@@ -16,25 +17,22 @@ export interface AuthUser {
 // Get authenticated user from server components
 export async function getServerUser(): Promise<AuthUser | null> {
   try {
-    // Check if Supabase is configured
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-      console.warn('Supabase not configured')
-      return null
+    // Dev mode: return dev user with PRO access
+    if (shouldUseDevelopmentMode()) {
+      return createDevUser()
     }
-    
+
     const supabase = await createServerSupabaseClient()
     const { data: { user }, error } = await supabase.auth.getUser()
-    
+
     if (error || !user) {
-      console.warn('Auth error:', error?.message)
       return null
     }
 
     // Try database first, fallback to Supabase-only auth
     try {
       const { prisma } = await import('./prisma')
-      
-      // Get or create user profile with retry logic
+
       let userProfile = await prisma.userApp.findUnique({
         where: { userId: user.id }
       })
@@ -50,7 +48,6 @@ export async function getServerUser(): Promise<AuthUser | null> {
             }
           })
         } catch (createError) {
-          // Handle race condition - try to find again
           userProfile = await prisma.userApp.findUnique({
             where: { userId: user.id }
           })
@@ -71,11 +68,15 @@ export async function getServerUser(): Promise<AuthUser | null> {
 
       return result
     } catch (dbError) {
-      console.warn('Database unavailable, using fallback auth:', (dbError as Error)?.message || 'Unknown error')
+      console.warn('Database unavailable, using fallback auth')
       return getServerUserFallback()
     }
   } catch (error) {
     console.error('Auth error:', error)
+    // Final fallback for dev mode
+    if (shouldUseDevelopmentMode()) {
+      return createDevUser()
+    }
     return null
   }
 }
@@ -83,38 +84,36 @@ export async function getServerUser(): Promise<AuthUser | null> {
 // Validate API request authentication from cookies
 export async function validateApiAuth(request: NextRequest): Promise<AuthUser | null> {
   try {
-    // Check if we're in development mode and allow demo access
+    // Dev mode: return dev user
+    if (shouldUseDevelopmentMode()) {
+      return createDevUser()
+    }
+
+    // Check for demo mode header
     if (process.env.NODE_ENV === 'development') {
       const demoMode = request.headers.get('x-demo-mode')
       if (demoMode === 'true') {
-        return {
-          id: 'demo-user',
-          email: 'demo@lawai.com',
-          plan: 'FREE',
-          usageCount: 0,
-          fullName: 'Demo User'
-        }
+        return createDevUser()
       }
     }
 
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return request.cookies.get(name)?.value
-          },
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    if (!supabaseUrl || !supabaseKey || supabaseUrl.includes('placeholder')) {
+      return createDevUser()
+    }
+
+    const supabase = createServerClient(supabaseUrl, supabaseKey, {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value
         },
-      }
-    )
-    
+      },
+    })
+
     const { data: { user }, error } = await supabase.auth.getUser()
     if (error || !user) {
-      // In production, try fallback auth
-      if (process.env.NODE_ENV === 'production') {
-        return getServerUserFallback()
-      }
       return null
     }
 
@@ -124,7 +123,6 @@ export async function validateApiAuth(request: NextRequest): Promise<AuthUser | 
         where: { userId: user.id }
       })
 
-      // Create user profile if it doesn't exist
       if (!userProfile) {
         try {
           userProfile = await prisma.userApp.create({
@@ -136,7 +134,6 @@ export async function validateApiAuth(request: NextRequest): Promise<AuthUser | 
             }
           })
         } catch (createError) {
-          // Handle race condition
           userProfile = await prisma.userApp.findUnique({
             where: { userId: user.id }
           })
@@ -157,22 +154,23 @@ export async function validateApiAuth(request: NextRequest): Promise<AuthUser | 
 
       return result
     } catch (dbError) {
-      console.warn('Database error, using fallback:', dbError)
+      console.warn('Database error, using fallback auth')
       return getServerUserFallback()
     }
   } catch (error) {
     console.error('API auth error:', error)
+    if (shouldUseDevelopmentMode()) {
+      return createDevUser()
+    }
     return null
   }
 }
 
 // Check if user has access to feature
 export function hasFeatureAccess(user: AuthUser, feature: string): boolean {
-  // Check if plan is expired first
   if (isPlanExpired(user)) {
     return ['AI_ASSISTANT', 'DOC_GENERATOR', 'JUDGMENT_SUMMARIZER'].includes(feature) && user.usageCount < 10
   }
-
   return hasFeatureAccessFallback(user, feature)
 }
 

@@ -1,62 +1,83 @@
-// Simple in-memory IP rate limiting
-const ipUsage = new Map<string, { count: number; resetTime: number }>()
+// Robust in-memory rate limiter with LRU cache and auto-cleanup
+// Serves as a fallback when database rate limiting is unavailable
 
-export function checkIPRateLimit(ip: string, maxRequests: number = 3): { allowed: boolean; remaining: number; resetTime: number } {
+interface RateLimitInfo {
+  count: number
+  resetTime: number
+}
+
+// Map to store rate limit data
+const ipCache = new Map<string, RateLimitInfo>()
+
+// Max cache size to prevent memory leaks
+const MAX_CACHE_SIZE = 10000
+
+// Automatic cleanup interval (every hour)
+setInterval(() => {
   const now = Date.now()
-  const dayInMs = 24 * 60 * 60 * 1000
-  
-  // Clean old entries
-  for (const [key, value] of ipUsage.entries()) {
+  for (const [key, value] of ipCache.entries()) {
     if (now > value.resetTime) {
-      ipUsage.delete(key)
+      ipCache.delete(key)
     }
   }
-  
-  const usage = ipUsage.get(ip)
-  
+}, 60 * 60 * 1000)
+
+export function checkIPRateLimit(
+  ip: string,
+  maxRequests: number = 5,
+  windowMinutes: number = 60 * 24 // 24 hours by default
+): { allowed: boolean; remaining: number; resetTime: number } {
+  const now = Date.now()
+  const windowMs = windowMinutes * 60 * 1000
+
+  // LRU eviction if cache is full
+  if (ipCache.size >= MAX_CACHE_SIZE) {
+    const iterator = ipCache.keys()
+    const firstKey = iterator.next().value
+    if (firstKey) ipCache.delete(firstKey)
+  }
+
+  const usage = ipCache.get(ip)
+
+  // New entry
   if (!usage) {
-    // First request from this IP
-    const resetTime = now + dayInMs
-    ipUsage.set(ip, { count: 1, resetTime })
+    const resetTime = now + windowMs
+    ipCache.set(ip, { count: 1, resetTime })
     return { allowed: true, remaining: maxRequests - 1, resetTime }
   }
-  
+
+  // Time window expired
   if (now > usage.resetTime) {
-    // Reset expired, start fresh
-    const resetTime = now + dayInMs
-    ipUsage.set(ip, { count: 1, resetTime })
+    const resetTime = now + windowMs
+    ipCache.set(ip, { count: 1, resetTime })
     return { allowed: true, remaining: maxRequests - 1, resetTime }
   }
-  
+
+  // Rate limit exceeded
   if (usage.count >= maxRequests) {
-    // Rate limit exceeded
     return { allowed: false, remaining: 0, resetTime: usage.resetTime }
   }
-  
+
   // Increment usage
   usage.count++
-  ipUsage.set(ip, usage)
-  
+  // Refresh the entry to mark as recently used
+  ipCache.delete(ip)
+  ipCache.set(ip, usage)
+
   return { allowed: true, remaining: maxRequests - usage.count, resetTime: usage.resetTime }
 }
 
 export function getClientIP(request: Request): string {
-  // Try various headers for IP detection
-  const forwarded = request.headers.get('x-forwarded-for')
-  const realIP = request.headers.get('x-real-ip')
-  const cfIP = request.headers.get('cf-connecting-ip')
-  
-  if (forwarded) {
-    return forwarded.split(',')[0].trim()
-  }
-  
-  if (realIP) {
-    return realIP.trim()
-  }
-  
-  if (cfIP) {
-    return cfIP.trim()
-  }
-  
-  return 'unknown'
+  // Try various headers for authentic IP
+  const headers = request.headers
+  const xForwardedFor = headers.get('x-forwarded-for')
+  if (xForwardedFor) return xForwardedFor.split(',')[0].trim()
+
+  const realIP = headers.get('x-real-ip')
+  if (realIP) return realIP.trim()
+
+  const cfIP = headers.get('cf-connecting-ip')
+  if (cfIP) return cfIP.trim()
+
+  return 'unknown-ip'
 }

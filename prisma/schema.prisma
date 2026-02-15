@@ -1,10 +1,12 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
 }
 
 // Main user profile table (separate from Supabase auth.users)
@@ -39,6 +41,7 @@ model UserApp {
   auditLogs     AuditLog[]
   cases         Case[]
   clients       Client[]
+  notifications Notification[]
 
   @@map("users_app")
 }
@@ -172,6 +175,7 @@ model CaseDocument {
   createdAt   DateTime     @default(now()) @map("created_at")
 
   case        Case         @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  embeddings  DocumentEmbedding[]
 
   @@index([caseId])
   @@map("case_documents")
@@ -529,7 +533,8 @@ model UploadedFile {
   fileSize   Int      @map("file_size")
   content    String?
   uploadedAt DateTime @default(now()) @map("uploaded_at")
-
+  embeddings DocumentEmbedding[]
+  
   user UserApp @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
   @@index([userId])
@@ -552,6 +557,40 @@ model AuditLog {
 
   @@index([userId, timestamp])
   @@map("audit_logs")
+}
+
+// System Notifications
+model Notification {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  title     String
+  message   String
+  type      String   @default("info") // info, success, warning, error
+  read      Boolean  @default(false)
+  actionUrl String?  @map("action_url")
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user UserApp @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+// RAG Embeddings
+model DocumentEmbedding {
+  id        String                 @id @default(uuid()) @db.Uuid
+  documentId String?               @map("document_id") @db.Uuid
+  uploadedFileId String?           @map("uploaded_file_id") @db.Uuid
+  content   String
+  embedding Unsupported("vector")?
+  metadata  Json?
+  createdAt DateTime               @default(now()) @map("created_at")
+
+  document     CaseDocument?       @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  uploadedFile UploadedFile?       @relation(fields: [uploadedFileId], references: [id], onDelete: Cascade)
+
+  @@map("document_embeddings")
 }
 
 // Enums

@@ -3,25 +3,29 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { memo, useMemo } from 'react'
-import { 
-  Home, 
-  MessageSquare, 
-  FileText, 
-  Scale, 
-  Briefcase, 
-  Users, 
-  Newspaper, 
+import { ThemeToggle } from '@/components/theme-toggle'
+import {
+  Home,
+  // ...
+  MessageSquare,
+  FileText,
+  Scale,
+  Briefcase,
+  Users,
+  Newspaper,
   BookOpen,
   Bell,
   Search,
   X,
-  ChevronRight
+  ChevronRight,
+  Phone
 } from 'lucide-react'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
   { name: 'My Cases', href: '/cases', icon: Briefcase },
   { name: 'AI Assistant', href: '/ai-assistant', icon: MessageSquare },
+  { name: 'Voice Lawyer', href: '/voice-lawyer', icon: Phone },
   { name: 'Drafts', href: '/drafts', icon: Scale },
   { name: 'Summarizer', href: '/summarizer', icon: FileText },
   { name: 'Case Tracker', href: '/case-tracker', icon: Search },
@@ -39,7 +43,7 @@ interface SidebarProps {
 
 export const Sidebar = memo(function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname()
-  
+
   const navigationItems = useMemo(() => {
     return navigation.map((item) => {
       const isActive = pathname === item.href
@@ -51,7 +55,7 @@ export const Sidebar = memo(function Sidebar({ isOpen, onClose }: SidebarProps) 
     <>
       {/* Mobile overlay */}
       {isOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 lg:hidden"
           onClick={onClose}
         />
@@ -89,8 +93,8 @@ export const Sidebar = memo(function Sidebar({ isOpen, onClose }: SidebarProps) 
                 href={item.href}
                 className={`
                   group flex items-center justify-between px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200
-                  ${item.isActive 
-                    ? 'bg-gray-900 text-white' 
+                  ${item.isActive
+                    ? 'bg-gray-900 text-white'
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }
                 `}
@@ -107,10 +111,14 @@ export const Sidebar = memo(function Sidebar({ isOpen, onClose }: SidebarProps) 
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-100">
-          <div className="px-4 py-3 bg-gray-50 rounded-xl">
-            <p className="text-xs text-gray-500 text-center">
-              © 2026 LAW.AI by RAGSPRO
+        <div className="p-4 border-t border-gray-100 dark:border-gray-800">
+          <div className="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl mb-2">
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Theme</span>
+            <ThemeToggle />
+          </div>
+          <div className="px-4 py-2">
+            <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+              © 2026 LAW.AI
             </p>
           </div>
         </div>

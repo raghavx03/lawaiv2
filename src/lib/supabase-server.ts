@@ -3,16 +3,22 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js'
 // Lazy initialization to avoid build-time errors
 let supabaseAdmin: SupabaseClient | null = null
 
-export function getSupabaseAdmin(): SupabaseClient {
-  if (supabaseAdmin) return supabaseAdmin
-  
+function isSupabaseServerConfigured(): boolean {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  
-  if (!url || !key) {
-    throw new Error('Missing Supabase environment variables')
+  return !!(url && key && !url.includes('placeholder') && !key.includes('placeholder'))
+}
+
+export function getSupabaseAdmin(): SupabaseClient {
+  if (supabaseAdmin) return supabaseAdmin
+
+  if (!isSupabaseServerConfigured()) {
+    throw new Error('Supabase not configured (dev mode)')
   }
-  
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY!
+
   supabaseAdmin = createClient(url, key)
   return supabaseAdmin
 }

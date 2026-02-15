@@ -11,9 +11,9 @@ import { LegalFAQ } from '@/components/landing/legal-faq'
 import { LegalCTA } from '@/components/landing/legal-cta'
 import { LegalFooter } from '@/components/landing/legal-footer'
 
-export default function HomePage() {
+export default function Home() {
   return (
-    <main className="min-h-screen bg-white text-gray-900 overflow-x-hidden">
+    <main className="min-h-screen bg-white text-gray-900 overflow-x-hidden animate-in">
       <LegalNavbar />
       <LegalHero />
       <LegalPreview />

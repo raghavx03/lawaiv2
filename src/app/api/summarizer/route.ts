@@ -18,8 +18,7 @@ export async function POST(request: NextRequest) {
   try {
     const user = await getServerUser().catch(() => null)
     const clientIP = getClientIP(request)
-    
-    // Rate limit for non-authenticated users
+
     if (!user) {
       const rateLimit = checkIPRateLimit(clientIP, 3)
       if (!rateLimit.allowed) {
@@ -31,48 +30,49 @@ export async function POST(request: NextRequest) {
         }, { status: 429 })
       }
     }
-    
+
     const body = await request.json()
     const { text, title, caseId } = summarizerSchema.parse(body)
     const userId = user?.id || `ip-${clientIP}`
     const sanitizedText = sanitizeInput(text)
     const sanitizedTitle = sanitizeInput(title)
 
-    // Generate summary using AI
     const messages = [
       {
         role: 'system' as const,
         content: `You are a legal expert specializing in summarizing Indian court judgments and legal documents.
 
-Provide a structured summary with:
-1. **Case Overview**: Brief facts and parties
-2. **Key Issues**: Legal questions addressed
-3. **Ratio Decidendi**: Core legal reasoning
-4. **Final Order**: Judgment/decision
-5. **Applicable Sections**: Relevant laws cited
-6. **Practical Implications**: How this affects similar cases
+Provide a structured summary with these exact sections:
+1. Case Overview: Brief facts and parties involved
+2. Key Issues: Legal questions addressed by the court
+3. Ratio Decidendi: Core legal reasoning and principles established
+4. Final Order: The judgment or decision rendered
+5. Applicable Sections: All relevant laws, statutes, and sections cited (with full citation)
+6. Practical Implications: How this affects similar cases in practice
 
-Be concise but comprehensive. Use Indian legal terminology.`
+RULES:
+- Cite every section, article, and case law reference with full details
+- Use Indian legal terminology
+- Do not use asterisks for formatting
+- End with a "Sources" section listing all authorities referenced in the document`
       },
       {
         role: 'user' as const,
-        content: `Summarize this legal document titled "${sanitizedTitle}":\n\n${sanitizedText.substring(0, 15000)}`
+        content: `Summarize this legal document titled "${sanitizedTitle}":\n\n${sanitizedText.substring(0, 20000)}`
       }
     ]
 
-    const aiResponse = await callAIService(messages, user ? 'PRO' : 'FREE', 1500, 0.3)
+    const aiResponse = await callAIService(messages, user?.plan || 'FREE', 4096, 0.3)
     const summary = aiResponse.content
-    
+
     if (!summary) {
       throw new Error('No summary generated')
     }
 
-
-    // Save summary to database
     const savedSummary = await safeDbOperation(async () => {
       const { prisma } = await import('@/lib/prisma')
       if (!prisma) throw new Error('Database unavailable')
-      
+
       return prisma.summary.create({
         data: {
           userId,
@@ -84,7 +84,6 @@ Be concise but comprehensive. Use Indian legal terminology.`
       })
     }, null)
 
-    // Log to case timeline if case is linked
     if (savedSummary && caseId && user) {
       await logSummaryCreated(caseId, user.id, sanitizedTitle, summary, savedSummary.id)
     }
@@ -94,14 +93,17 @@ Be concise but comprehensive. Use Indian legal terminology.`
       id: savedSummary?.id || 'temp-' + Date.now(),
       title: sanitizedTitle,
       summary,
+      citations: aiResponse.citations || [],
+      model: aiResponse.model,
+      verified: aiResponse.verified,
       caseId,
       createdAt: savedSummary?.createdAt || new Date()
     })
   } catch (error) {
     console.error('Summarizer error:', sanitizeForLog(error))
-    return NextResponse.json({ 
-      ok: false, 
-      message: error instanceof Error ? error.message : 'An unexpected error occurred' 
+    return NextResponse.json({
+      ok: false,
+      message: error instanceof Error ? error.message : 'An unexpected error occurred'
     }, { status: 500 })
   }
 }
@@ -111,29 +113,24 @@ export async function GET(request: NextRequest) {
     const user = await getServerUser().catch(() => null)
     const clientIP = getClientIP(request)
     const userId = user?.id || `ip-${clientIP}`
-    
+
     const { searchParams } = new URL(request.url)
     const caseId = searchParams.get('caseId')
-    
+
     const summaries = await safeDbOperation(async () => {
       const { prisma } = await import('@/lib/prisma')
       if (!prisma) return []
-      
+
       const whereClause: any = { userId }
-      if (caseId) {
-        whereClause.caseId = caseId
-      }
-      
+      if (caseId) { whereClause.caseId = caseId }
+
       return prisma.summary.findMany({
         where: whereClause,
         orderBy: { createdAt: 'desc' },
         take: 20,
         select: {
-          id: true,
-          title: true,
-          summary: true,
-          caseId: true,
-          createdAt: true
+          id: true, title: true, summary: true,
+          caseId: true, createdAt: true
         }
       })
     }, [])

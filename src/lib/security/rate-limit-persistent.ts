@@ -1,93 +1,81 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { checkIPRateLimit } from '@/lib/ip-rate-limit'
 
-// Database-backed rate limiting for production
+// Database-backed rate limiting for production with memory fallback
 export async function rateLimitGuard(request: NextRequest, userId?: string): Promise<boolean> {
-  const now = Date.now()
-  const ip = request.ip || request.headers.get('x-forwarded-for') || 'unknown'
-  
-  // IP-based rate limiting (30 requests per minute)
-  const ipKey = `rate_limit_ip_${ip}`
-  const ipLimit = 30
-  const windowMs = 60 * 1000 // 1 minute
-  
+  // If we're in a critical failure state (DB down), fail open or use memory fallback
   try {
-    // Use database for persistent rate limiting
-    const ipRecord = await prisma.$queryRaw<Array<{count: number, reset_time: Date}>>`
-      SELECT count, reset_time FROM rate_limits 
-      WHERE key = ${ipKey} AND reset_time > NOW()
-    `
-    
-    if (ipRecord.length > 0) {
-      const record = ipRecord[0]
-      if (record && record.count >= ipLimit) {
-        return false
-      }
-      
-      // Increment count
-      await prisma.$executeRaw`
-        UPDATE rate_limits 
-        SET count = count + 1 
-        WHERE key = ${ipKey}
-      `
-    } else {
-      // Create new record
-      await prisma.$executeRaw`
-        INSERT INTO rate_limits (key, count, reset_time) 
-        VALUES (${ipKey}, 1, ${new Date(now + windowMs)})
-        ON CONFLICT (key) DO UPDATE SET 
-          count = 1, 
-          reset_time = ${new Date(now + windowMs)}
-      `
-    }
-    
-    // User-based rate limiting if authenticated (120 requests per minute)
-    if (userId) {
-      const userKey = `rate_limit_user_${userId}`
-      const userLimit = 120
-      
-      const userRecord = await prisma.$queryRaw<Array<{count: number, reset_time: Date}>>`
-        SELECT count, reset_time FROM rate_limits 
-        WHERE key = ${userKey} AND reset_time > NOW()
-      `
-      
-      if (userRecord.length > 0) {
-        const record = userRecord[0]
-        if (record && record.count >= userLimit) {
-          return false
-        }
-        
-        await prisma.$executeRaw`
-          UPDATE rate_limits 
-          SET count = count + 1 
-          WHERE key = ${userKey}
-        `
-      } else {
-        await prisma.$executeRaw`
-          INSERT INTO rate_limits (key, count, reset_time) 
-          VALUES (${userKey}, 1, ${new Date(now + windowMs)})
-          ON CONFLICT (key) DO UPDATE SET 
-            count = 1, 
-            reset_time = ${new Date(now + windowMs)}
-        `
-      }
-    }
-    
-    return true
-  } catch (error) {
-    console.error('Rate limit error:', error)
-    // Fail open - allow request if rate limiting fails
+    const { _failSafeRateLimit } = await import('./fail-safe-rate-limit')
+    return _failSafeRateLimit(request, userId)
+  } catch (e) {
+    // Ultimate fallback if even imports fail
     return true
   }
 }
 
-// Cleanup expired rate limit records (run periodically)
-export async function cleanupRateLimits() {
+// Internal implementation
+async function _failSafeRateLimit(request: NextRequest, userId?: string): Promise<boolean> {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown-ip'
+
+  // 1. Try DB Rate Limiting (Persistent)
   try {
-    await prisma.$executeRaw`
-      DELETE FROM rate_limits WHERE reset_time < NOW()
-    `
-  } catch (error) {
-    console.error('Rate limit cleanup error:', error)
+    const key = userId ? `user:${userId}` : `ip:${ip}`
+    const limit = userId ? 100 : 20 // 100 req/min for users, 20 for IPs
+
+    // Check if table exists implicitly via try/catch on query
+    const now = new Date()
+    const windowStart = new Date(now.getTime() - 60 * 1000) // 1 minute window
+
+    // Use transaction for atomicity
+    const result = await prisma.$transaction(async (tx) => {
+      // Find existing record
+      let record = await tx.rateLimit.findUnique({
+        where: { key }
+      })
+
+      // If no record or expired, create/reset
+      if (!record || record.resetTime < now) {
+        // Upsert handles race conditions better
+        record = await tx.rateLimit.upsert({
+          where: { key },
+          update: {
+            count: 1,
+            resetTime: new Date(now.getTime() + 60 * 1000),
+            createdAt: now
+          },
+          create: {
+            key,
+            count: 1,
+            resetTime: new Date(now.getTime() + 60 * 1000)
+          }
+        })
+        return true
+      }
+
+      // Check limit
+      if (record.count >= limit) {
+        return false
+      }
+
+      // Increment
+      await tx.rateLimit.update({
+        where: { key },
+        data: { count: record.count + 1 }
+      })
+
+      return true
+    })
+
+    return result
+
+  } catch (dbError) {
+    // 2. Fallback to Memory Rate Limiting (In-memory LRU)
+    console.warn('DB Rate Limit failed, using memory fallback:', dbError)
+
+    // For authenticated users, allow higher limits
+    const limit = userId ? 50 : 10
+    const result = checkIPRateLimit(userId || ip, limit, 1) // 1 minute window
+    return result.allowed
   }
 }

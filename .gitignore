@@ -64,3 +64,7 @@ Thumbs.db
 *.pem
 *.key
 *.crt
+
+# Nested project directories (prevent duplicates)
+law-ai/
+lawai.git/
