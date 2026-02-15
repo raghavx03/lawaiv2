@@ -328,3 +328,36 @@ export async function callAIQuick(
 ): Promise<AIResponse> {
   return callNvidiaLlama(messages, maxTokens, temperature)
 }
+
+// Streaming AI Service for "Instant Typing Effect"
+export async function streamLegalResponse(
+  messages: { role: string, content: string }[],
+  onFinish?: (completion: string) => Promise<void>
+) {
+  const model = nvidiaProvider('nvidia/llama-3.3-nemotron-super-49b-v1.5')
+
+  // Inject system prompt for legal expertise if not present
+  let formattedMessages = [...messages]
+  if (!formattedMessages.find(m => m.role === 'system')) {
+    formattedMessages.unshift({
+      role: 'system',
+      content: `You are an expert Indian legal assistant.
+      
+RULES:
+1. Cite specific Indian laws (IPC, CPC, CrPC, Acts)
+2. Be practical and concise
+3. Use professional tone
+4. If unsure, disclaim liability`
+    })
+  }
+
+  const result = await streamText({
+    model,
+    messages: formattedMessages as any,
+    async onFinish({ text }) {
+      if (onFinish) await onFinish(text)
+    }
+  })
+
+  return result.toDataStreamResponse()
+}

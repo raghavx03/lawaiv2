@@ -1,5 +1,5 @@
 
-import pdf from 'pdf-parse'
+const pdf = require('pdf-parse')
 import { getTextExtractor } from 'office-text-extractor'
 
 const extractor = getTextExtractor()
