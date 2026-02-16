@@ -349,7 +349,7 @@ export async function callAIQuick(
   return callNvidiaLlama(messages, maxTokens, temperature)
 }
 
-// Streaming AI Service for "Instant Typing Effect"
+// Streaming AI Service for "Instant Typing Effect" - Manual Fetch Implementation
 export async function streamLegalResponse(
   messages: { role: string, content: string }[],
   onFinish?: (completion: string) => Promise<void>
@@ -358,14 +358,6 @@ export async function streamLegalResponse(
   if (!apiKey || apiKey === 'placeholder' || apiKey.includes('your_')) {
     throw new Error('NVIDIA Llama API key not configured (Streaming)')
   }
-
-  // Use provider with key from env explicitly
-  const nvidia = createOpenAI({
-    baseURL: NVIDIA_BASE_URL,
-    apiKey: apiKey
-  })
-
-  const model = nvidia('nvidia/llama-3.3-nemotron-super-49b-v1.5')
 
   // Inject system prompt for legal expertise if not present
   let formattedMessages = [...messages]
@@ -386,18 +378,79 @@ RULES:
   }
 
   try {
-    const result = await streamText({
-      model,
-      messages: formattedMessages as any,
-      async onFinish({ text }) {
-        if (onFinish) await onFinish(text)
+    const response = await fetch(`${NVIDIA_BASE_URL}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
       },
-      onError({ error }: { error: unknown }) {
-        console.error('StreamText error:', error)
+      body: JSON.stringify({
+        model: "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+        messages: formattedMessages,
+        temperature: 0.2, // Low temp for factual legal advice
+        top_p: 0.7,
+        max_tokens: 2048,
+        stream: true
+      })
+    })
+
+    if (!response.ok) {
+      const errText = await response.text()
+      console.error("NVIDIA Stream Error:", response.status, errText)
+      throw new Error(`NVIDIA API Error: ${response.status} - ${errText}`)
+    }
+
+    // Convert SSE stream to text stream for AI SDK compatibility
+    const stream = new ReadableStream({
+      async start(controller) {
+        if (!response.body) {
+          controller.close()
+          return
+        }
+        const reader = response.body.getReader()
+        const decoder = new TextDecoder()
+        let fullText = ""
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+
+            const chunk = decoder.decode(value, { stream: true })
+            const lines = chunk.split('\n').filter(line => line.trim() !== '')
+
+            for (const line of lines) {
+              if (line === 'data: [DONE]') continue
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6))
+                  const content = data.choices[0]?.delta?.content
+                  if (content) {
+                    fullText += content
+                    controller.enqueue(new TextEncoder().encode(content))
+                  }
+                } catch (e) {
+                  // Ignore partial chunks
+                }
+              }
+            }
+          }
+        } catch (err) {
+          console.error("Stream reading error:", err)
+          controller.error(err)
+        } finally {
+          if (onFinish) {
+            onFinish(fullText).catch(e => console.error("onFinish Error:", e))
+          }
+          controller.close()
+        }
       }
     })
 
-    return result.toTextStreamResponse()
+    return new Response(stream, {
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+    })
+
   } catch (error) {
     console.error('Stream setup failed:', error)
     throw error
