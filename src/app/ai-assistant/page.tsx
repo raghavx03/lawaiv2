@@ -226,7 +226,7 @@ export default function AIAssistantPage() {
     setStreamText('')
 
     try {
-      // Use streaming endpoint for fast word-by-word response
+      // Ultra-fast streaming — direct text stream, no auth overhead
       const response = await fetch('/api/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -234,23 +234,10 @@ export default function AIAssistantPage() {
       })
 
       if (!response.ok) {
-        // Fallback to non-streaming
-        const fallbackRes = await fetch('/api/chat-enhanced', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: prompt, sessionId: session.id })
-        })
-        const data = await fallbackRes.json()
-        if (data.ok && data.message) {
-          const aiMsg: Message = { id: `a-${genId()}`, role: 'assistant', content: data.message, timestamp: new Date() }
-          const final = [...updatedMsgs, aiMsg]
-          setMessages(final)
-          updateSession(session, final, msg)
-        }
-        return
+        throw new Error(`API error: ${response.status}`)
       }
 
-      // Stream the response
+      // Read raw text stream from Vercel AI SDK (toTextStreamResponse)
       const reader = response.body?.getReader()
       const decoder = new TextDecoder()
       let accumulated = ''
@@ -259,33 +246,8 @@ export default function AIAssistantPage() {
         while (true) {
           const { done, value } = await reader.read()
           if (done) break
-
-          const chunk = decoder.decode(value, { stream: true })
-          const lines = chunk.split('\n')
-
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const data = line.slice(6)
-              if (data === '[DONE]') continue
-              try {
-                const parsed = JSON.parse(data)
-                if (parsed.content) {
-                  accumulated += parsed.content
-                  setStreamText(accumulated)
-                }
-              } catch {
-                // Not JSON, might be raw text
-                if (data && data !== '[DONE]') {
-                  accumulated += data
-                  setStreamText(accumulated)
-                }
-              }
-            } else if (line.trim() && !line.startsWith(':')) {
-              // Raw text streaming
-              accumulated += line
-              setStreamText(accumulated)
-            }
-          }
+          accumulated += decoder.decode(value, { stream: true })
+          setStreamText(accumulated)
         }
       }
 

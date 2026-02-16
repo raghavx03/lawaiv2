@@ -24,29 +24,34 @@ export default function ResetPasswordPage() {
     const handleAuthStateChange = async () => {
       try {
         const supabase = getSupabase()
+        if (!supabase) {
+          setError('System unavailable')
+          setIsCheckingSession(false)
+          return
+        }
         setIsCheckingSession(true)
-        
+
         // First, check if there are tokens in the URL hash (from email link)
         const hashParams = new URLSearchParams(window.location.hash.substring(1))
         const accessToken = hashParams.get('access_token')
         const refreshToken = hashParams.get('refresh_token')
         const type = hashParams.get('type')
-        
-        console.log('URL Hash params:', { 
-          hasAccessToken: !!accessToken, 
-          hasRefreshToken: !!refreshToken, 
-          type 
+
+        console.log('URL Hash params:', {
+          hasAccessToken: !!accessToken,
+          hasRefreshToken: !!refreshToken,
+          type
         })
-        
+
         if (type === 'recovery' && accessToken && refreshToken) {
           console.log('Setting session from URL tokens...')
-          
+
           // Set the session with the tokens from the URL
           const { data, error } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken
           })
-          
+
           if (error) {
             console.error('Session error:', error)
             setError('Invalid or expired reset link. Please request a new password reset.')
@@ -59,7 +64,7 @@ export default function ResetPasswordPage() {
         } else {
           // Check if user already has a valid session
           const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-          
+
           if (sessionError) {
             console.error('Session check error:', sessionError)
             setError('Unable to verify session. Please try again.')
@@ -78,7 +83,7 @@ export default function ResetPasswordPage() {
         setIsCheckingSession(false)
       }
     }
-    
+
     // Add a small delay to ensure the page has loaded
     const timer = setTimeout(handleAuthStateChange, 100)
     return () => clearTimeout(timer)
@@ -86,7 +91,7 @@ export default function ResetPasswordPage() {
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (password !== confirmPassword) {
       toast.error('Passwords do not match')
       return
@@ -101,8 +106,13 @@ export default function ResetPasswordPage() {
 
     try {
       const supabase = getSupabase()
+      if (!supabase) {
+        toast.error('System unavailable')
+        setLoading(false)
+        return
+      }
       console.log('Updating password...')
-      
+
       // Update the user's password
       const { data, error } = await supabase.auth.updateUser({
         password: password
@@ -116,10 +126,10 @@ export default function ResetPasswordPage() {
       if (data.user) {
         console.log('Password updated successfully')
         toast.success('Password updated successfully!')
-        
+
         // Sign out to ensure clean state and redirect to login
         await supabase.auth.signOut()
-        
+
         // Redirect with success message
         router.push('/auth/login?message=Password updated successfully. Please sign in with your new password.')
       }
@@ -161,13 +171,13 @@ export default function ResetPasswordPage() {
           </CardHeader>
           <CardContent>
             <div className="text-center space-y-3">
-              <Button 
+              <Button
                 onClick={() => router.push('/auth/forgot-password')}
                 className="w-full"
               >
                 Request New Reset Link
               </Button>
-              <Button 
+              <Button
                 variant="outline"
                 onClick={() => router.push('/auth/login')}
                 className="w-full"
@@ -248,7 +258,7 @@ export default function ResetPasswordPage() {
           </form>
 
           <div className="text-center">
-            <Button 
+            <Button
               variant="ghost"
               onClick={() => router.push('/auth/login')}
               className="text-sm text-gray-600 hover:text-gray-800"

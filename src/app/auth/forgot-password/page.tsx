@@ -20,6 +20,11 @@ export default function ForgotPasswordPage() {
 
     try {
       const supabase = getSupabase()
+      if (!supabase) {
+        toast.error('System unavailable')
+        setLoading(false)
+        return
+      }
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/reset-password`,
       })
@@ -48,7 +53,7 @@ export default function ForgotPasswordPage() {
           </CardHeader>
           <CardContent>
             <div className="text-center">
-              <Link href="/auth/sign-in" className="text-blue-600 hover:underline">
+              <Link href="/auth/login" className="text-blue-600 hover:underline">
                 Back to sign in
               </Link>
             </div>
@@ -88,7 +93,7 @@ export default function ForgotPasswordPage() {
 
           <div className="text-center text-sm">
             Remember your password?{' '}
-            <Link href="/auth/sign-in" className="text-blue-600 hover:underline">
+            <Link href="/auth/login" className="text-blue-600 hover:underline">
               Sign in
             </Link>
           </div>

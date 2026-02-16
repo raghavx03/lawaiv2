@@ -66,13 +66,23 @@ function SignupForm() {
       }
 
       if (data.user) {
-        if (data.user.email_confirmed_at) {
-          toast.success('Account created! Redirecting...')
-          window.location.href = '/dashboard'
-        } else {
-          toast.success('Account created! Please check your email to verify.')
-          router.push('/auth/login?message=Please check your email to verify your account')
+        // Auto-login immediately — sign in with the credentials just used
+        toast.success('Account created! Logging you in...')
+        try {
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email: email.trim(),
+            password,
+          })
+          if (!signInError) {
+            window.location.href = '/dashboard'
+            return
+          }
+        } catch (e) {
+          // If auto-login fails, still redirect
+          console.warn('Auto-login after signup failed:', e)
         }
+        // Fallback redirect
+        window.location.href = '/dashboard'
       }
     } catch (error: any) {
       console.error('Signup exception:', error)
