@@ -22,7 +22,20 @@ export async function getServerUser(): Promise<AuthUser | null> {
       return createDevUser()
     }
 
-    const supabase = await createServerSupabaseClient()
+    const { cookies } = await import('next/headers')
+    const cookieStore = await cookies()
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+    const supabase = createServerClient(supabaseUrl, supabaseKey, {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+      },
+    })
+
     const { data: { user }, error } = await supabase.auth.getUser()
 
     if (error || !user) {

@@ -159,12 +159,30 @@ RULES:
 export async function GET(request: NextRequest) {
   try {
     const user = await getServerUser().catch(() => null)
-    const clientIP = getClientIP(request)
-    const userId = user?.id || `ip-${clientIP}`
+    if (!user) return NextResponse.json([], { status: 401 })
+
+    // IP fallback discouraged for fetching list, but allowed for singular fetch if implemented
+    const userId = user.id
 
     const { searchParams } = new URL(request.url)
     const caseId = searchParams.get('caseId')
+    const id = searchParams.get('id')
 
+    if (id) {
+      // Fetch single draft
+      const draft = await safeDbOperation(async () => {
+        const { prisma } = await import('@/lib/prisma')
+        if (!prisma) return null
+        return prisma.draft.findUnique({
+          where: { id, userId } // Ensure ownership
+        })
+      }, null)
+
+      if (!draft) return NextResponse.json({ error: 'Draft not found' }, { status: 404 })
+      return NextResponse.json(draft)
+    }
+
+    // List drafts
     const drafts = await safeDbOperation(async () => {
       const { prisma } = await import('@/lib/prisma')
       if (!prisma) return []
@@ -187,5 +205,36 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Get drafts error:', sanitizeForLog(error))
     return NextResponse.json([])
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const user = await getServerUser().catch(() => null)
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const { id, content, title } = await request.json()
+    if (!id || !content) return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
+
+    const updated = await safeDbOperation(async () => {
+      const { prisma } = await import('@/lib/prisma')
+      if (!prisma) return null
+      // Verify ownership first implicitly by where clause
+      return prisma.draft.update({
+        where: { id, userId: user.id },
+        data: {
+          content,
+          title: title || undefined,
+          updatedAt: new Date()
+        }
+      })
+    }, null)
+
+    if (!updated) return NextResponse.json({ error: 'Update failed or not authorized' }, { status: 404 })
+
+    return NextResponse.json({ ok: true, draft: updated })
+  } catch (error) {
+    console.error('Update draft error:', sanitizeForLog(error))
+    return NextResponse.json({ error: 'Failed to update draft' }, { status: 500 })
   }
 }

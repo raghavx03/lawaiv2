@@ -363,8 +363,14 @@ export default function AIAssistantPage() {
       const text = m.content.replace(/\[OFFER_DRAFT\]/g, '')
       const r = await fetch('/api/ai-to-draft', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ aiContent: text }) })
       const d = await r.json()
-      if (d.ok) { toast.success('Draft created! Redirecting...', { id: 'draft' }); window.open('/drafts', '_blank') }
-      else toast.error('Failed', { id: 'draft' })
+      // Fix: Redirect to specific draft ID (requires DraftsPage to handle query param)
+      if (d.ok && d.draft?.id) {
+        toast.success('Draft created! Opening editor...', { id: 'draft' });
+        window.open(`/drafts?id=${d.draft.id}`, '_blank')
+      }
+      else {
+        toast.error('Failed to create draft', { id: 'draft' })
+      }
     } catch { toast.error('Failed', { id: 'draft' }) }
   }
 
