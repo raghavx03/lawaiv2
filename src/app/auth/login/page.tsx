@@ -38,6 +38,11 @@ function LoginForm() {
 
     try {
       const supabase = getSupabase()
+      if (!supabase) {
+        toast.error('System unavailable')
+        setLoading(false)
+        return
+      }
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
@@ -73,6 +78,11 @@ function LoginForm() {
     setLoading(true)
     try {
       const supabase = getSupabase()
+      if (!supabase) {
+        toast.error('System unavailable')
+        setLoading(false)
+        return
+      }
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -132,7 +142,8 @@ function LoginForm() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-3 text-gray-400 hover:text-gray-300 transition-colors"
+                className="absolute right-3 top-3 text-gray-400 hover:text-gray-300 transition-colors z-20 cursor-pointer p-1"
+                tabIndex={-1} // Prevent tab focus order issues if desired, or keep generic
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>

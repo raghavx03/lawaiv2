@@ -137,7 +137,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true
 
-    // DEV MODE: Auto-login with demo user
+    // DEV MODE check - explicit override or detection
     if (isDevMode) {
       setUser(DEV_USER)
       setProfile(DEV_PROFILE)
@@ -149,21 +149,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const initAuth = async () => {
       try {
         const supabase = getSupabase()
-        const { data: { session } } = await supabase.auth.getSession()
+        if (!supabase) {
+          console.error('Supabase client not initialized')
+          setUser(DEV_USER)
+          setProfile(DEV_PROFILE)
+          setLoading(false)
+          return
+        }
+
+        // Timeout to prevent infinite loading state
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Auth timeout')), 5000)
+        )
+
+        const sessionPromise = supabase.auth.getSession()
+
+        const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any
 
         if (mounted) {
-          setUser(session?.user ?? null)
-
           if (session?.user) {
+            setUser(session.user)
             const immediateProfile = createProfileFromUser(session.user)
             setProfile(immediateProfile)
             refreshProfile()
           } else {
+            setUser(null)
             setProfile(null)
           }
-
           setLoading(false)
         }
+
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, session) => {

@@ -63,9 +63,10 @@ export const Sidebar = memo(function Sidebar({ isOpen, onClose }: SidebarProps) 
 
       {/* Sidebar */}
       <div className={`
-        fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-out flex flex-col
+        fixed inset-y-0 left-0 z-50 w-64 md:w-72 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-out flex flex-col
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0 lg:relative
+        shadow-2xl lg:shadow-none
       `}>
         {/* Logo */}
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-100">
