@@ -354,7 +354,18 @@ export async function streamLegalResponse(
   messages: { role: string, content: string }[],
   onFinish?: (completion: string) => Promise<void>
 ) {
-  const model = nvidiaProvider('nvidia/llama-3.3-nemotron-super-49b-v1.5')
+  const apiKey = process.env.NVIDIA_LLAMA_API_KEY
+  if (!apiKey || apiKey === 'placeholder' || apiKey.includes('your_')) {
+    throw new Error('NVIDIA Llama API key not configured (Streaming)')
+  }
+
+  // Use provider with key from env explicitly
+  const nvidia = createOpenAI({
+    baseURL: NVIDIA_BASE_URL,
+    apiKey: apiKey
+  })
+
+  const model = nvidia('nvidia/llama-3.3-nemotron-super-49b-v1.5')
 
   // Inject system prompt for legal expertise if not present
   let formattedMessages = [...messages]
@@ -374,13 +385,21 @@ RULES:
     })
   }
 
-  const result = await streamText({
-    model,
-    messages: formattedMessages as any,
-    async onFinish({ text }) {
-      if (onFinish) await onFinish(text)
-    }
-  })
+  try {
+    const result = await streamText({
+      model,
+      messages: formattedMessages as any,
+      async onFinish({ text }) {
+        if (onFinish) await onFinish(text)
+      },
+      onError({ error }: { error: unknown }) {
+        console.error('StreamText error:', error)
+      }
+    })
 
-  return result.toTextStreamResponse()
+    return result.toTextStreamResponse()
+  } catch (error) {
+    console.error('Stream setup failed:', error)
+    throw error
+  }
 }
