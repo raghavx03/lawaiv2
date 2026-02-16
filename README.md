@@ -1,123 +1,167 @@
-# ⚖️ LAW-AI: The Future of Legal Tech
+# ⚖️ LAW-AI: Enterprise Legal Intelligence Platform
 
-> **Enterprise-grade Legal AI Platform** integrating **RAG (Document Intelligence)**, **Streaming AI**, and **Real-time Case Tracking**. Built for speed, accuracy, and scalability.
+> **Next-Gen Legal Assistant** powered by **NVIDIA AI**, **RAG (Retrieval-Augmented Generation)**, and **Supabase Realtime**. Built for advocates, law firms, and legal tech innovators.
 
-[![Demo Status](https://img.shields.io/website?url=https%3A%2F%2Flawaiv2.vercel.app&label=Live%20Demo&style=for-the-badge)](https://lawaiv2.vercel.app)
-[![Tech Stack](https://img.shields.io/badge/Stack-Next.js%20%7C%20Supabase%20%7C%20NVIDIA-blue?style=for-the-badge)](https://stackshare.io)
+[![Live Demo](https://img.shields.io/badge/Live_Demo-lawaiv2.ragspro.com-blue?style=for-the-badge&logo=vercel)](https://lawaiv2.ragspro.com)
+[![Tech Stack](https://img.shields.io/badge/Stack-Next.js_14_%7C_Supabase_%7C_NVIDIA_NIM-000000?style=for-the-badge&logo=next.js)](https://stackshare.io)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
+[![Status](https://img.shields.io/website?url=https%3A%2F%2Flawaiv2.ragspro.com&label=System%20Status&style=for-the-badge)](https://lawaiv2.ragspro.com)
 
 ---
 
-## 🚀 Why This Repo Ranks #1 in Legal AI?
+## 🚀 Why This Project Leads the Industry?
 
-Law-AI is not just another wrapper. It's a **full-stack engineering marvel** featuring:
+**LAW-AI** is engineered as a **production-ready legal operating system**, solving the core challenges of legal tech: latency, accuracy, and data privacy. It leverages a modern, event-driven architecture to deliver sub-200ms responses and verifiable legal citations.
 
-1.  **🧠 RAG Pipeline (Retrieval-Augmented Generation)**:
-    - Automatically extracts text from uploaded **PDFs/DOCX**.
-    - Generates vector embeddings using **NVIDIA API**.
-    - Stores in **Supabase pgvector** for semantic search.
-    - *Result:* AI that reads and cites *your* specific case files.
-
-2.  **⚡ Instant Streaming AI (<200ms)**:
-    - Powered by **Vercel AI SDK**.
-    - ZERO latency. Responses stream token-by-token.
-    - Uses **Llama 3.3 Nemotron** for legal reasoning.
-
-3.  **🔔 Real-Time Architecture**:
-    - **Supabase Realtime** integration.
-    - Database-driven notifications that push instantly to the UI.
-    - No refreshing required.
-
-4.  **🔒 Enterprise Security**:
-    - Rate limiting (IP & User based).
-    - CSRF & JWT protection.
-    - Role-Based Access Control (RBAC).
+### 🌟 Core Capabilities
+- **🧠 Expert Legal Reasoning**: Powered by **Llama 3.3 Nemotron (70B)** via NVIDIA NIM, specifically fine-tuned for complex reasoning.
+- **⚡ Instant Streaming**: Custom streaming pipeline using Vercel AI SDK ensures zero-wait interactions.
+- **📚 RAG (Document Intelligence)**: Upload PDFs/DOCX. The system vectorizes content using NVIDIA embeddings and stores in **Supabase pgvector** for semantic search.
+- **🎙️ Voice Lawyer**: Real-time voice consultation with Indian accent support (TTS/STT).
+- **📝 Smart Drafting**: Context-aware document generation (`[OFFER_DRAFT]` system). Ask for a notice, get a structured draft instantly.
+- **🔒 Enterprise Security**: Role-Based Access Control (RBAC), IP Rate Limiting, and JWT authentication via Supabase.
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Technology Stack
 
-- **Frontend**: Next.js 14 (App Router), TypeScript, Tailwind CSS, Shadcn UI
-- **Backend**: Next.js Server Actions & API Routes
-- **Database**: PostgreSQL (Supabase) + Prisma ORM
-- **Vector DB**: pgvector extension
-- **AI Engine**: NVIDIA NIM (Llama 3.3, DeepSeek R1), Vercel AI SDK
-- **Auth**: Supabase Auth (OAuth + Email)
-- **Payments**: Razorpay Integration
-
----
-
-## ⚡ Quick Start
-
-### Prerequisites
-- Node.js 18+
-- Supabase Project (with `vector` extension enabled)
-- NVIDIA NIM API Key
-
-### Installation
-
-1.  **Clone the Repo**
-    ```bash
-    git clone https://github.com/raghavx03/lawaiv2.git
-    cd lawaiv2
-    ```
-
-2.  **Install Dependencies**
-    ```bash
-    npm install
-    ```
-
-3.  **Configure Environment**
-    Copy `.env.example` to `.env.local` and add your keys:
-    ```env
-    NEXT_PUBLIC_SUPABASE_URL=...
-    NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-    NVIDIA_LLAMA_API_KEY=...
-    ```
-
-4.  **Initialize Database**
-    ```bash
-    npx prisma generate
-    npx prisma db push
-    # Enable vector extension
-    npx ts-node scripts/enable-vector.ts
-    ```
-
-5.  **Run Development Server**
-    ```bash
-    npm run dev
-    ```
+| Component | Technology | Description |
+|---|---|---|
+| **Frontend** | **Next.js 14** (App Router) | React Server Components, Streaming SSR |
+| **Styling** | **Tailwind CSS** + **Shadcn UI** | Responsive, dark-mode ready design system |
+| **Backend** | **Next.js API Routes** | Edge-compatible serverless functions |
+| **Database** | **Supabase** (PostgreSQL) | Relational data + Realtime subscriptions |
+| **Search** | **pgvector** | Vector similarity search for RAG |
+| **AI Engine** | **NVIDIA NIM** | High-performance inference for Llama 3.3 & DeepSeek |
+| **Auth** | **Supabase Auth** | secure email/password & OAuth (Google) |
+| **Storage** | **Supabase Storage** | Secure document hosting with RLS policies |
+| **Payments** | **Razorpay** | Subscription management (Pro/Enterprise plans) |
 
 ---
 
-## 🌟 Key Features
+## 🏗️ Architecture Overview
 
-### 🤖 AI Legal Assistant
-- **Context-Aware**: Remembers previous chat context.
-- **Citation Enforcement**: Every claim is backed by Indian Law sections (IPC, CrPC).
-- **Streaming**: Typewriter effect for natural interaction.
+```mermaid
+graph TD
+    User[User / Client] -->|HTTPS| CDN[Vercel Edge Network]
+    CDN -->|Next.js App| App[Application Server]
+    
+    subgraph "AI Pipeline"
+    App -->|Stream| NV[NVIDIA NIM API]
+    NV -->|Llama 3.3| Model[LLM Engine]
+    NV -->|Embeddings| Vector[Vector Model]
+    end
+    
+    subgraph "Data Layer"
+    App -->|Auth/Data| DB[(Supabase Postgres)]
+    App -->|Uploads| Storage[Supabase Storage]
+    DB -->|pgvector| VectorStore[Vector Index]
+    end
+    
+    subgraph "Realtime"
+    DB -->|CDC Changes| Realtime[Supabase Realtime]
+    Realtime -->|WebSocket| User
+    end
+```
 
-### 📄 Intelligent Document Analysis (RAG)
-- Upload Case Files (PDF).
-- Ask questions like *"What is the date of the incident in the FIR?"*.
-- AI scans the *vector database* to find exact answers.
+---
 
-### 📅 Smart Case Tracker
-- Track hearing dates.
-- Auto-sync with court APIs (simulated).
-- **WhatsApp Integration** for client updates.
+## ⚡ Quick Start Guide
+
+### 1. clone the Repository
+```bash
+git clone https://github.com/raghavx03/lawaiv2.git
+cd lawai-main
+```
+
+### 2. Install Dependencies
+```bash
+npm install
+# or
+yarn install
+```
+
+### 3. Environment Setup
+Create a `.env.local` file in the root directory:
+
+```env
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=your_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+# AI Configuration (NVIDIA NIM)
+NVIDIA_LLAMA_API_KEY=nvapi-...
+
+# Payment Gateway (Razorpay)
+NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_test_...
+RAZORPAY_KEY_SECRET=...
+RAZORPAY_WEBHOOK_SECRET=...
+
+# App Config
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+### 4. Database Initialization
+Push the schema to your Supabase instance:
+```bash
+npx prisma generate
+npx prisma db push
+```
+
+### 5. Run Development Server
+```bash
+npm run dev
+```
+Visit `http://localhost:3000` to see the application.
+
+---
+
+## 📂 Project Structure
+
+```bash
+/src
+  /app              # Next.js App Router (Pages & API)
+    /admin          # Secured Admin Dashboard
+    /ai-assistant   # Main Chat Interface
+    /api            # Serverless API Endpoints
+    /auth           # Authentication Pages
+    /dashboard      # User Dashboard
+  /components       # React Components (Shadcn UI)
+  /lib              # Core Utilities (AI, DB, Auth)
+    ai-service.ts   # NVIDIA Integration Logic
+    rag.ts          # RAG Pipeline Implementation
+  /types            # TypeScript Definitions
+/prisma             # Database Schema
+/public             # Static Assets
+```
+
+---
+
+## 🛡️ Security Features
+
+- **Middleware Protection**: `middleware.ts` adds security headers (HSTS, X-Frame-Options) and route guards.
+- **Row Level Security (RLS)**: Database policies ensure users only access their own data.
+- **Input Sanitization**: All AI inputs are sanitized to prevent injection attacks.
+- **Rate Limiting**: Custom implementation using Redis/Upstash (optional) or in-memory map.
 
 ---
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+We welcome contributions! Please check `CONTRIBUTING.md` for guidelines.
 
-1.  Fork the Project
-2.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3.  Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4.  Push to the Branch (`git push origin feature/AmazingFeature`)
-5.  Open a Pull Request
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
 

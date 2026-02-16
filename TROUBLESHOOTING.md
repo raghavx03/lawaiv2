@@ -1,144 +1,78 @@
-# LAW-AI Troubleshooting Guide
+# 🔍 LAW-AI Troubleshooting Guide
 
-## 🚨 Common Issues & Fixes
+> **Diagnostic Manual** for common deployment and runtime issues.
 
-### 1. **Build Failures**
+---
 
-**Error:** `Module not found` or `Type errors`
-```bash
-# Clear cache and reinstall
-rm -rf .next node_modules package-lock.json
-npm install
-npx prisma generate
-npm run build
+## 1. Authentication Issues
+
+### A. Redirect Loop / "Site URL Mismatch"
+**Symptom:** After login, you are redirected back to login or get an error.
+**Fix:**
+1. Check **Supabase Dashboard** -> Authentication -> URL Configuration.
+2. Ensure `Site URL` is exactly `https://lawai.ragspro.com` (no trailing slash).
+3. Ensure `Redirect URLs` includes `https://lawai.ragspro.com/**`.
+
+### B. "NextAuth.js Error" (Google Login)
+**Symptom:** Google OAuth fails with a generic error.
+**Fix:**
+1. Check **Google Cloud Console** -> Credentials -> OAuth 2.0 Client.
+2. Ensure "Authorized redirect URIs" matches `https://<PROJECT_REF>.supabase.co/auth/v1/callback`.
+3. Verify `SUPABASE_SERVICE_ROLE_KEY` in Vercel env vars is correct.
+
+---
+
+## 2. Database & RAG Issues
+
+### A. "Relation 'vector' does not exist"
+**Symptom:** RAG pipeline fails or migration error.
+**Fix:**
+Run SQL in Supabase SQL Editor:
+```sql
+CREATE EXTENSION IF NOT EXISTS vector;
+CREATE EXTENSION IF NOT EXISTS uuid-ossp;
 ```
 
-### 2. **Database Connection Issues**
+### B. "Prisma Client not initialized"
+**Symptom:** API routes fail with 500 error.
+**Fix:**
+This usually happens in serverless environments. Ensure you are not importing `prisma` client inside a component. It must be a singleton in `src/lib/prisma.ts`.
 
-**Error:** `PrismaClientInitializationError`
-```bash
-# Check DATABASE_URL format
-echo $DATABASE_URL
+---
 
-# Test connection
-npx prisma db pull
+## 3. Deployment Issues
 
-# Reset and push schema
-npx prisma db push --force-reset
-```
+### A. 504 Gateway Timeout (Vercel)
+**Symptom:** AI takes too long to respond.
+**Fix:**
+- Use **Streaming API** (already implemented).
+- If using non-streaming, upgrade Vercel to Pro (60s timeout vs 10s on Hobby).
+- Optimize database queries.
 
-### 3. **Authentication Not Working**
+### B. Build Failures "Type Error"
+**Symptom:** `npm run build` fails on Vercel.
+**Fix:**
+- We enforce strict type checking. Run `npx tsc --noEmit` locally to find errors.
+- Ensure all env vars are present in Vercel (missing vars can cause build failures if code relies on them at build time).
 
-**Error:** `Supabase auth errors`
-```bash
-# Verify environment variables
-node -e "console.log({
-  url: process.env.NEXT_PUBLIC_SUPABASE_URL,
-  key: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 20) + '...'
-})"
+---
 
-# Check Supabase project status
-curl -H "apikey: $NEXT_PUBLIC_SUPABASE_ANON_KEY" \
-     "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/"
-```
+## 4. AI Service Issues
 
-### 4. **Payment Integration Issues**
+### A. "NVIDIA API Key Invalid"
+**Symptom:** AI returns error or empty response.
+**Fix:**
+- Check `NVIDIA_LLAMA_API_KEY` in Vercel.
+- The key must start with `nvapi-`.
 
-**Error:** `Razorpay checkout fails`
-```bash
-# Verify Razorpay keys
-node -e "console.log({
-  keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-  secret: process.env.RAZORPAY_KEY_SECRET?.substring(0, 10) + '...'
-})"
+### B. "Rate Limit Exceeded"
+**Symptom:** 429 Error.
+**Fix:**
+- NVIDIA NIM has rate limits. Implement backoff or upgrade plan.
+- Check user IP rate limiting in `middleware.ts`.
 
-# Test payment API
-curl -X POST http://localhost:3000/api/payments/create-order \
-     -H "Content-Type: application/json" \
-     -d '{"plan":"BASIC"}'
-```
+---
 
-### 5. **OpenAI API Issues**
-
-**Error:** `AI features not working`
-```bash
-# Test OpenAI API key
-curl -H "Authorization: Bearer $OPENAI_API_KEY" \
-     -H "Content-Type: application/json" \
-     -d '{"model":"gpt-3.5-turbo","messages":[{"role":"user","content":"test"}],"max_tokens":5}' \
-     https://api.openai.com/v1/chat/completions
-```
-
-## 🔧 Quick Fixes
-
-### Environment Setup
-```bash
-# Copy and update environment
-cp .env.example .env.local
-# Edit .env.local with real values
-```
-
-### Database Reset
-```bash
-npx prisma migrate reset --force
-npx prisma db push
-npx prisma generate
-```
-
-### Clean Build
-```bash
-rm -rf .next
-npm run build
-```
-
-### Development Server
-```bash
-npm run dev
-# Visit http://localhost:3000
-```
-
-## 📊 Health Check Commands
-
-```bash
-# API Health
-curl http://localhost:3000/api/health
-
-# Database Connection
-npx prisma db pull
-
-# Build Test
-npm run build
-
-# Type Check
-npm run type-check
-```
-
-## 🚀 Production Deployment
-
-### Vercel Deployment
-1. Connect GitHub repository
-2. Set environment variables in Vercel dashboard
-3. Deploy automatically on push
-
-### Environment Variables for Production
-```env
-NODE_ENV=production
-NEXT_PUBLIC_SITE_URL=https://yourdomain.com
-DATABASE_URL=postgresql://...
-OPENAI_API_KEY=sk-...
-NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_live_...
-RAZORPAY_KEY_SECRET=...
-```
-
-## 🔍 Debug Mode
-
-Enable detailed logging:
-```env
-NODE_ENV=development
-DEBUG=true
-```
-
-Check logs:
-```bash
-tail -f dev.log
-```
+## 📞 Critical Support
+If issues persist, contact the maintenance team:
+**Raghav Shah** - [raghavshahhh@gmail.com](mailto:raghavshahhh@gmail.com)

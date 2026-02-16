@@ -1,145 +1,127 @@
-# 🚀 LAW-AI Vercel Deployment Guide
+# 🚀 LAW-AI Production Deployment Guide
 
-## 📋 **Pre-Deployment Checklist**
+> **Enterprise Deployment Checklist** for Vercel + Supabase stack. Follow these steps to deploy a secure, scalable legal AI platform.
 
-### ✅ **Environment Variables Setup**
-Create these in Vercel Dashboard:
+---
 
-```env
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+## ✅ Pre-Flight Checklist
 
-# OpenAI
-OPENAI_API_KEY=sk-your_openai_api_key
+Before deploying, ensure you have:
 
-# Razorpay
-NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_live_your_key_id
-RAZORPAY_KEY_SECRET=your_razorpay_secret
-RAZORPAY_WEBHOOK_SECRET=your_webhook_secret
+1.  **Vercel Account** (Pro plan recommended for >10s timeout, but Hobby works).
+2.  **Supabase Project** with `pgvector` enabled.
+3.  **NVIDIA NIM API Key** (Llama 3.3 Access).
+4.  **Google Cloud Console Project** (for OAuth).
+5.  **Razorpay Account** (for payments).
 
-# Database
-DATABASE_URL=postgresql://user:pass@host:5432/db
-DIRECT_URL=postgresql://user:pass@host:5432/db
+---
 
-# Security
-CSRF_SECRET=your-production-csrf-secret-32-chars
-JWT_SECRET=your-production-jwt-secret-32-chars
-NEXTAUTH_SECRET=your-production-nextauth-secret
+## 1. Environment Configuration
 
-# Site
-NEXT_PUBLIC_SITE_URL=https://lawai.ragspro.com
-NODE_ENV=production
-```
+Configure these variables in **Vercel Dashboard** → **Settings** → **Environment Variables**:
 
-## 🌐 **Deployment Steps**
+### Core Infrastructure
+| Variable | Value Source | Description |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase > Settings > API | Project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase > Settings > API | Public Key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase > Settings > API | Secret Admin Key |
+| `DATABASE_URL` | Supabase > Settings > DB | Transaction Pooler |
+| `DIRECT_URL` | Supabase > Settings > DB | Session Pooler |
 
-### 1. **Deploy to Vercel**
-```bash
-cd /Users/raghavpratap/Desktop/lawai/law-ai/frontend
-vercel --prod
-```
+### AI Integration
+| Variable | Value Source | Description |
+|---|---|---|
+| `NVIDIA_LLAMA_API_KEY` | NVIDIA NIM Portal | Llama 3.3 API Key |
+| `OPENAI_API_KEY` | OpenAI Platform | Whisper (Audio) Key |
 
-### 2. **Domain Configuration**
+### Authentication & Security
+| Variable | Value Source | Description |
+|---|---|---|
+| `NEXT_PUBLIC_SITE_URL` | Production Domain | e.g. `https://lawai.ragspro.com` |
+| `CSRF_SECRET` | Generate (`openssl rand -hex 32`) | 32-char hex string |
+| `JWT_SECRET` | Generate (`openssl rand -hex 32`) | 32-char hex string |
 
-#### **In Vercel Dashboard:**
-1. Go to Project Settings → Domains
-2. Add domain: `lawai.ragspro.com`
-3. Copy the CNAME record provided
+### Payments (Optional)
+| Variable | Value Source | Description |
+|---|---|---|
+| `NEXT_PUBLIC_RAZORPAY_KEY_ID` | Razorpay Dashboard | Public Key |
+| `RAZORPAY_KEY_SECRET` | Razorpay Dashboard | Secret Key |
+| `RAZORPAY_WEBHOOK_SECRET` | Razorpay Dashboard | Webhook Secret |
 
-#### **In Domain Provider (ragspro.com):**
-Add CNAME record:
-```
-Type: CNAME
-Name: lawai
-Value: cname.vercel-dns.com
-TTL: 3600
-```
+---
 
-### 3. **SSL Certificate**
-- Vercel automatically provisions SSL
-- Certificate will be ready in 5-10 minutes
+## 2. Database Migration (Production)
 
-## 🔧 **Quick Deploy Commands**
+Running migrations on Vercel requires enabling the build command override or running remotely.
+
+**Recommended Method (Remote):**
+Run this from your local machine, pointing to the *production* database URL.
 
 ```bash
-# Login to Vercel
-vercel login
-
-# Deploy to production
-vercel --prod
-
-# Check deployment status
-vercel ls
-
-# View logs
-vercel logs
-```
-
-## 📊 **Post-Deployment Setup**
-
-### 1. **Database Migration**
-```bash
-# Run in Vercel Functions or locally
+# 1. Update .env to point to production DB
+# 2. Run migration
 npx prisma migrate deploy
 ```
 
-### 2. **Webhook URLs Update**
-Update webhook URLs in:
-- **Razorpay**: `https://lawai.ragspro.com/api/payments/webhook`
-- **Supabase**: `https://lawai.ragspro.com/api/auth/callback`
-
-### 3. **Test Deployment**
-- ✅ Homepage loads: https://lawai.ragspro.com
-- ✅ Authentication works
-- ✅ API endpoints respond
-- ✅ Database connections work
-
-## 🛠️ **Environment Variables Template**
-
-Copy to Vercel Dashboard → Settings → Environment Variables:
-
-```
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-OPENAI_API_KEY=
-NEXT_PUBLIC_RAZORPAY_KEY_ID=
-RAZORPAY_KEY_SECRET=
-RAZORPAY_WEBHOOK_SECRET=
-DATABASE_URL=
-DIRECT_URL=
-CSRF_SECRET=
-JWT_SECRET=
-NEXTAUTH_SECRET=
-NEXT_PUBLIC_SITE_URL=https://lawai.ragspro.com
-NODE_ENV=production
-```
-
-## 🔍 **Troubleshooting**
-
-### Common Issues:
-1. **Build Fails**: Check environment variables
-2. **Domain Not Working**: Verify CNAME record
-3. **API Errors**: Check database connection
-4. **Auth Issues**: Verify Supabase callback URL
-
-### Useful Commands:
+**Alternative (Vercel Build Command):**
+Update "Build Command" in Vercel settings to:
 ```bash
-# Check build locally
-npm run build
-
-# Test production build
-npm start
-
-# View deployment logs
-vercel logs --follow
+npx prisma generate && npx prisma migrate deploy && next build
 ```
 
-## 📱 **Final URLs**
-- **Production**: https://lawai.ragspro.com
-- **Vercel Dashboard**: https://vercel.com/dashboard
-- **GitHub Repo**: https://github.com/ragspro/lawai
+---
 
-Ready for production! 🎯
+## 3. Post-Deployment Configuration
+
+### A. Google OAuth Redirects
+1. Go to **Google Cloud Console** > Credentials.
+2. Add Authorized Redirect URI:
+   ```
+   https://<YOUR_SUPABASE_PROJECT>.supabase.co/auth/v1/callback
+   ```
+   *(Note: It points to Supabase, NOT your Vercel domain)*
+
+### B. Supabase Auth Settings
+1. Go to **Supabase Dashboard** > Authentication > URL Configuration.
+2. Set **Site URL** to: `https://lawai.ragspro.com`
+3. Add to **Redirect URLs**:
+   ```
+   https://lawai.ragspro.com/**
+   https://lawai.ragspro.com/api/auth/callback
+   ```
+
+### C. Webhooks
+1. **Razorpay**: Add webhook for `order.paid` events pointing to:
+   `https://lawai.ragspro.com/api/payments/webhook`
+
+---
+
+## 4. Verification & Testing
+
+After deployment, verify key flows:
+
+1.  **Health Check**: Visit `/` (Homepage).
+2.  **Auth**: Sign up with a new email + Google Login.
+3.  **AI Test**: Visit `/ai-assistant` and ask "What is Section 302 IPC?".
+4.  **RAG Pipeline**: Upload a PDF to `/document-analysis` and query it.
+5.  **Admin Access**: Visit `/admin` (should redirect to login/access denied).
+
+---
+
+## 5. Troubleshooting Common Issues
+
+| Issue | Solution |
+|---|---|
+| **504 Gateway Timeout** | Vercel Hobby plan has 10s timeout. Upgrade to Pro or optimize API. |
+| **Auth Redirect Loop** | Check Supabase "Site URL" setting. Ensure no trailing slash inconsistencies. |
+| **Vector Search Fails** | Ensure `pgvector` extension is enabled in Supabase (`create extension vector;`). |
+| **Hydration Error** | Clear browser cache/cookies. Check for browser extensions interfering. |
+| **"Invalid API Key"** | Redeploy Vercel project after updating Environment Variables. |
+
+---
+
+## 📞 Support
+
+For enterprise support or deployment assistance, contact:
+**Raghav Shah** - [raghavshahhh@gmail.com](mailto:raghavshahhh@gmail.com)
