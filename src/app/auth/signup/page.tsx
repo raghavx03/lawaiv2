@@ -38,6 +38,11 @@ function SignupForm() {
 
     try {
       const supabase = getSupabase()
+      if (!supabase) {
+        toast.error('System unavailable')
+        setLoading(false)
+        return
+      }
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
@@ -80,6 +85,11 @@ function SignupForm() {
     setLoading(true)
     try {
       const supabase = getSupabase()
+      if (!supabase) {
+        toast.error('System unavailable')
+        setLoading(false)
+        return
+      }
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
