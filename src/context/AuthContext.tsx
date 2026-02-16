@@ -96,6 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const supabase = getSupabase()
+      if (!supabase) { setProfileLoading(false); return }
       const { data: { session } } = await supabase.auth.getSession()
 
       const response = await fetch('/api/user/profile', {
@@ -209,6 +210,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setProfile(DEV_PROFILE)
           setLoading(false)
         }
+        return undefined
       }
     }
 
@@ -228,6 +230,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return
     }
     const supabase = getSupabase()
+    if (!supabase) throw new Error('System unavailable')
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -246,6 +249,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     try {
       const supabase = getSupabase()
+      if (!supabase) { window.location.href = '/'; return }
       await supabase.auth.signOut()
 
       setUser(null)

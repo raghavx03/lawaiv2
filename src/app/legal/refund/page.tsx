@@ -38,7 +38,7 @@ export default function RefundPage() {
 
                     <h2>4. Cancellation Process</h2>
                     <p>
-            You can cancel your subscription at any time from the "Settings" > "Billing" section of your dashboard. Alternatively, you can
+                        You can cancel your subscription at any time from the &quot;Settings&quot; {'>'} &quot;Billing&quot; section of your dashboard. Alternatively, you can
                         email us at support@lawai.in with your registered email address.
                     </p>
 

@@ -166,12 +166,14 @@ async function getChecklistStatus(caseId: string, userId: string) {
       prisma.uploadedFile.count({ where: { userId, caseId } })
     ])
 
+    const caseRecord = await prisma.case.findUnique({ where: { id: caseId }, select: { notes: true } })
+
     return {
       draftsReady: draftsCount > 0,
       draftsCount,
       documentsUploaded: docsCount > 0,
       documentsCount: docsCount,
-      notesReady: (typeof caseRecord.notes === 'string' && caseRecord.notes.length > 10) || false,
+      notesReady: (typeof caseRecord?.notes === 'string' && caseRecord.notes.length > 10) || false,
       researchDone: (await prisma.research.count({ where: { userId, caseId } })) > 0
     }
   }, defaultChecklist())

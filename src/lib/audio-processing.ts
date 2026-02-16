@@ -8,7 +8,7 @@ export async function transcribeAudioWithWhisper(audioBuffer: Buffer): Promise<s
 
   try {
     const formData = new FormData()
-    formData.append('file', new Blob([audioBuffer], { type: 'audio/webm' }), 'audio.webm')
+    formData.append('file', new Blob([Uint8Array.from(audioBuffer)], { type: 'audio/webm' }), 'audio.webm')
     formData.append('model', 'whisper-1')
     formData.append('language', 'en')
 

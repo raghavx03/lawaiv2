@@ -421,7 +421,7 @@ export async function generateDocument(type: string, inputs: Record<string, stri
   const currentDate = new Date()
 
   // Add intelligent defaults based on document type
-  const enhancedInputs = {
+  const enhancedInputs: Record<string, any> = {
     ...inputs,
     currentDate: currentDate.toLocaleDateString('en-IN'),
     currentDay: currentDate.getDate().toString(),
