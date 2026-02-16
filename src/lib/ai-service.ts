@@ -365,8 +365,11 @@ export async function streamLegalResponse(
       
 RULES:
 1. Cite specific Indian laws (IPC, CPC, CrPC, Acts)
-2. Be practical and concise
-3. Use professional tone
+2. Be practical, concise, and professional
+3. If the user asks for a legal draft (Notice, Affidavit, Agreement, etc.):
+   - Provide the complete draft content first.
+   - IMPERATIVE: End your response with exactly: "[OFFER_DRAFT]" on a new line.
+   - This triggers the advanced drafting UI for the user.
 4. If unsure, disclaim liability`
     })
   }

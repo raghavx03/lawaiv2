@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { toast, Toaster } from 'react-hot-toast'
+import { Toaster, toast } from 'react-hot-toast'
 import Link from 'next/link'
 import {
   Send, Scale, Sparkles, Loader2, Upload, X, FileText,
@@ -17,6 +17,7 @@ interface Message {
   content: string
   timestamp: Date
   file?: { name: string; type: string }
+  isDraft?: boolean // Tag for draft messages
 }
 
 interface ChatSession {
@@ -49,10 +50,11 @@ function fmtTime(date: Date) {
 }
 
 // ============ MARKDOWN RENDERER ============
-// Converts markdown to clean HTML for professional display
 function renderMarkdown(text: string): string {
-  let html = text
-    // Escape HTML
+  // Strip special tokens from view
+  let html = text.replace(/\[OFFER_DRAFT\]/g, '')
+
+  html = html
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -83,15 +85,13 @@ function renderMarkdown(text: string): string {
   html = html.replace(/Section\s+(\d+[A-Za-z]*)/g, '<span class="font-semibold text-amber-700 bg-amber-50 px-1 rounded">Section $1</span>')
   html = html.replace(/Article\s+(\d+[A-Za-z]*)/g, '<span class="font-semibold text-blue-700 bg-blue-50 px-1 rounded">Article $1</span>')
 
-  // Paragraphs (double newline)
+  // Paragraphs
   html = html.replace(/\n\n/g, '</p><p class="mb-3">')
-  // Single newlines within paragraphs
   html = html.replace(/\n/g, '<br/>')
 
-  // Wrap in paragraph
   html = `<p class="mb-3">${html}</p>`
 
-  // Clean up empty paragraphs
+  // Cleanup
   html = html.replace(/<p class="mb-3"><\/p>/g, '')
   html = html.replace(/<p class="mb-3">(<h[123])/g, '$1')
   html = html.replace(/(<\/h[123]>)<\/p>/g, '$1')
@@ -119,7 +119,7 @@ export default function AIAssistantPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // ============ PERSISTENCE ============
+  // ============ PERSISTENCE LOAD ============
   useEffect(() => {
     try {
       const saved = localStorage.getItem(SESSIONS_KEY)
@@ -139,6 +139,34 @@ export default function AIAssistantPage() {
       }
     } catch (e) { console.error('Load sessions error:', e) }
   }, [])
+
+  // ============ MULTI-TAB SYNC ============
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === SESSIONS_KEY && e.newValue) {
+        try {
+          const parsed: ChatSession[] = JSON.parse(e.newValue).map((s: any) => ({
+            ...s,
+            createdAt: new Date(s.createdAt),
+            updatedAt: new Date(s.updatedAt),
+            messages: (s.messages || []).map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) }))
+          }))
+          setSessions(parsed)
+          // If active session was updated in another tab, update messages
+          if (activeSession) {
+            const updatedActive = parsed.find(s => s.id === activeSession.id)
+            if (updatedActive) {
+              setMessages(updatedActive.messages)
+            }
+          }
+        } catch (err) {
+          console.error('Sync failed:', err)
+        }
+      }
+    }
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [activeSession])
 
   const save = useCallback((updated: ChatSession[]) => {
     try { localStorage.setItem(SESSIONS_KEY, JSON.stringify(updated)) } catch (e) { /* ignore */ }
@@ -226,18 +254,14 @@ export default function AIAssistantPage() {
     setStreamText('')
 
     try {
-      // Ultra-fast streaming — direct text stream, no auth overhead
       const response = await fetch('/api/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: prompt })
       })
 
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`)
-      }
+      if (!response.ok) throw new Error(`API error: ${response.status}`)
 
-      // Read raw text stream from Vercel AI SDK (toTextStreamResponse)
       const reader = response.body?.getReader()
       const decoder = new TextDecoder()
       let accumulated = ''
@@ -252,7 +276,17 @@ export default function AIAssistantPage() {
       }
 
       if (accumulated.trim()) {
-        const aiMsg: Message = { id: `a-${genId()}`, role: 'assistant', content: accumulated.trim(), timestamp: new Date() }
+        const hasDraft = accumulated.includes('[OFFER_DRAFT]')
+        const cleanContent = accumulated
+
+        const aiMsg: Message = {
+          id: `a-${genId()}`,
+          role: 'assistant',
+          content: cleanContent,
+          timestamp: new Date(),
+          isDraft: hasDraft
+        }
+
         const final = [...updatedMsgs, aiMsg]
         setMessages(final)
         setStreamText('')
@@ -288,7 +322,8 @@ export default function AIAssistantPage() {
 
   // ============ ACTIONS ============
   const copyMsg = (m: Message) => {
-    navigator.clipboard.writeText(m.content)
+    const text = m.content.replace(/\[OFFER_DRAFT\]/g, '')
+    navigator.clipboard.writeText(text)
     setCopiedId(m.id)
     toast.success('Copied!')
     setTimeout(() => setCopiedId(null), 2000)
@@ -300,7 +335,7 @@ export default function AIAssistantPage() {
     const date = new Date().toLocaleDateString('en-IN')
     let txt = `${title}\nDate: ${date}\n${'='.repeat(50)}\n\n`
     messages.forEach(m => {
-      txt += `[${fmtTime(m.timestamp)}] ${m.role === 'user' ? 'You' : 'AI Lawyer'}:\n${m.content}\n\n`
+      txt += `[${fmtTime(m.timestamp)}] ${m.role === 'user' ? 'You' : 'AI Lawyer'}:\n${m.content.replace(/\[OFFER_DRAFT\]/g, '')}\n\n`
     })
     txt += `\n${'='.repeat(50)}\nGenerated by LAW.AI\n`
     const blob = new Blob([txt], { type: 'text/plain' })
@@ -313,7 +348,7 @@ export default function AIAssistantPage() {
 
   const shareChat = async () => {
     if (!messages.length) return
-    const text = messages.map(m => `${m.role === 'user' ? 'You' : 'AI'}: ${m.content}`).join('\n\n')
+    const text = messages.map(m => `${m.role === 'user' ? 'You' : 'AI'}: ${m.content.replace(/\[OFFER_DRAFT\]/g, '')}`).join('\n\n')
     if (navigator.share) {
       try { await navigator.share({ title: activeSession?.title, text: text.slice(0, 1000) }) } catch (e) { /* cancelled */ }
     } else {
@@ -325,9 +360,10 @@ export default function AIAssistantPage() {
   const convertToDraft = async (m: Message) => {
     toast.loading('Creating draft...', { id: 'draft' })
     try {
-      const r = await fetch('/api/ai-to-draft', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ aiContent: m.content }) })
+      const text = m.content.replace(/\[OFFER_DRAFT\]/g, '')
+      const r = await fetch('/api/ai-to-draft', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ aiContent: text }) })
       const d = await r.json()
-      if (d.ok) { toast.success('Draft created!', { id: 'draft' }); window.open('/drafts', '_blank') }
+      if (d.ok) { toast.success('Draft created! Redirecting...', { id: 'draft' }); window.open('/drafts', '_blank') }
       else toast.error('Failed', { id: 'draft' })
     } catch { toast.error('Failed', { id: 'draft' }) }
   }
@@ -354,7 +390,7 @@ export default function AIAssistantPage() {
 
   // ============ RENDER ============
   return (
-    <div className="h-screen flex bg-white overflow-hidden">
+    <div className="h-screen flex bg-white overflow-hidden font-sans">
       <Toaster position="top-center" toastOptions={{ style: { borderRadius: '12px', fontSize: '14px' } }} />
 
       {/* ====== SIDEBAR ====== */}
@@ -391,7 +427,7 @@ export default function AIAssistantPage() {
           </div>
           <div>
             <p className="text-sm font-semibold text-gray-900">🎙️ Voice Lawyer</p>
-            <p className="text-xs text-gray-500">Talk to Advocate Sharma</p>
+            <p className="text-xs text-gray-500">Real-time Consultant</p>
           </div>
           <ChevronRight className="w-4 h-4 text-gray-400 ml-auto group-hover:translate-x-0.5 transition-transform" />
         </Link>
@@ -433,9 +469,9 @@ export default function AIAssistantPage() {
       </aside>
 
       {/* ====== MAIN CHAT ====== */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 bg-white">
         {/* Header */}
-        <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+        <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-10">
           <div className="flex items-center gap-3">
             <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 hover:bg-gray-100 rounded-lg">
               <Menu className="w-5 h-5 text-gray-600" />
@@ -467,65 +503,66 @@ export default function AIAssistantPage() {
         </header>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-50/50 to-white">
+        <div className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-50 to-white">
           {messages.length === 0 && !loading ? (
-            /* ====== EMPTY STATE ====== */
-            <div className="h-full flex flex-col items-center justify-center p-4 sm:p-8">
-              <div className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center mb-4 shadow-inner">
-                <Sparkles className="w-8 h-8 text-gray-400" />
+            /* ====== ANIMATED WELCOME STATE ====== */
+            <div className="h-full flex flex-col items-center justify-center p-4 sm:p-8 animate-in fade-in duration-700">
+              <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-3xl flex items-center justify-center mb-6 shadow-inner animate-pulse">
+                <Sparkles className="w-10 h-10 text-amber-500" />
               </div>
-              <h2 className="text-xl font-bold text-gray-900 mb-1">Ask Any Legal Question</h2>
-              <p className="text-gray-500 text-sm text-center max-w-md mb-8">
-                IPC, CrPC, Constitution, Property, Family, Consumer Law — get detailed answers with sections, case law & solutions.
+
+              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3 text-center tracking-tight">
+                Ask Any Legal Question
+              </h2>
+
+              <p className="text-gray-500 text-base sm:text-lg text-center max-w-xl mb-10 leading-relaxed">
+                Expert answers on IPC, CrPC, Property, and Family Law.<br />
+                <span className="text-amber-600 font-medium">Capable of drafting legal notices instantly.</span>
               </p>
 
-              <div className="w-full max-w-3xl grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {categories.map(cat => (
-                  <div key={cat.title} className="bg-white border border-gray-200 rounded-2xl p-4 hover:shadow-md transition-shadow">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${cat.color} flex items-center justify-center`}>
-                        <cat.icon className="w-3.5 h-3.5 text-white" />
+              <div className="w-full max-w-4xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {categories.map((cat, idx) => (
+                  <div key={cat.title}
+                    className="bg-white border border-gray-200 rounded-2xl p-4 hover:shadow-lg hover:border-gray-300 transition-all duration-300 group cursor-default"
+                    style={{ animationDelay: `${idx * 100}ms` }}>
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${cat.color} flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform`}>
+                        <cat.icon className="w-4 h-4 text-white" />
                       </div>
-                      <h3 className="text-sm font-semibold text-gray-900">{cat.title}</h3>
+                      <h3 className="text-sm font-bold text-gray-900">{cat.title}</h3>
                     </div>
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       {cat.questions.map(q => (
                         <button key={q} onClick={() => { setInput(q); textareaRef.current?.focus() }}
-                          className="w-full text-left px-3 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 text-sm rounded-xl transition-all flex items-center justify-between group active:scale-[0.98]">
-                          <span>{q}</span>
-                          <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-gray-500 group-hover:translate-x-0.5 transition-all" />
+                          className="w-full text-left px-3 py-2 bg-gray-50 hover:bg-gray-100 text-gray-600 text-xs sm:text-sm rounded-lg transition-all flex items-center justify-between group/btn active:scale-[0.98]">
+                          <span className="truncate">{q}</span>
+                          <ChevronRight className="w-3 h-3 text-gray-300 group-hover/btn:text-gray-500 group-hover/btn:translate-x-0.5 transition-all opacity-0 group-hover/btn:opacity-100" />
                         </button>
                       ))}
                     </div>
                   </div>
                 ))}
               </div>
-              <div className="mt-6 flex items-center gap-4 text-xs text-gray-400">
-                <span className="flex items-center gap-1"><Globe className="w-3 h-3" /> English, Hindi, Hinglish</span>
-                <span className="flex items-center gap-1"><Scale className="w-3 h-3" /> Indian Law</span>
-                <span className="flex items-center gap-1"><Upload className="w-3 h-3" /> Document Analysis</span>
-              </div>
             </div>
           ) : (
             /* ====== MESSAGES ====== */
-            <div className="py-4 px-4 sm:px-6 space-y-5 max-w-4xl mx-auto">
+            <div className="py-6 px-4 sm:px-6 space-y-6 max-w-4xl mx-auto">
               {messages.map(m => (
-                <div key={m.id} className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : ''} animate-in`}
-                  style={{ animation: 'fadeSlideIn 0.3s ease-out' }}>
+                <div key={m.id} className={`flex gap-4 ${m.role === 'user' ? 'justify-end' : ''} animate-in fade-in slide-in-from-bottom-2 duration-500`}>
                   {m.role === 'assistant' && (
-                    <div className="w-8 h-8 bg-gradient-to-br from-gray-900 to-gray-700 rounded-xl flex items-center justify-center flex-shrink-0 mt-1 shadow-sm">
-                      <Scale className="w-3.5 h-3.5 text-white" />
+                    <div className="w-9 h-9 bg-gradient-to-br from-gray-900 to-gray-700 rounded-xl flex items-center justify-center flex-shrink-0 mt-1 shadow-sm">
+                      <Scale className="w-4 h-4 text-white" />
                     </div>
                   )}
-                  <div className={`max-w-[85%] ${m.role === 'user' ? '' : ''}`}>
+                  <div className={`max-w-[85%] ${m.role === 'user' ? '' : 'w-full'}`}>
                     {m.file && (
-                      <div className="flex items-center gap-2 mb-1.5 px-3 py-1.5 bg-gray-100 rounded-lg text-xs text-gray-500 w-fit">
+                      <div className="flex items-center gap-2 mb-2 px-3 py-1.5 bg-gray-100 border border-gray-200 rounded-lg text-xs text-gray-600 w-fit">
                         <FileText className="w-3.5 h-3.5" /><span>{m.file.name}</span>
                       </div>
                     )}
                     <div className={`rounded-2xl overflow-hidden ${m.role === 'user'
-                      ? 'bg-gray-900 text-white px-4 py-3 rounded-br-md'
-                      : 'bg-white border border-gray-200 px-5 py-4 rounded-bl-md shadow-sm'
+                      ? 'bg-gray-900 text-white px-5 py-3.5 rounded-br-md shadow-lg'
+                      : 'bg-white border border-gray-200 px-6 py-5 rounded-bl-md shadow-sm'
                       }`}>
                       {m.role === 'user' ? (
                         <p className="whitespace-pre-wrap text-sm leading-relaxed">{m.content}</p>
@@ -534,10 +571,32 @@ export default function AIAssistantPage() {
                           dangerouslySetInnerHTML={{ __html: renderMarkdown(m.content) }} />
                       )}
                     </div>
-                    <div className="flex items-center gap-2 mt-1.5 px-1">
-                      <span className="text-xs text-gray-400">{fmtTime(m.timestamp)}</span>
+
+                    {/* DRAFT PROMPT CARD - Only for AI messages with draft tag */}
+                    {m.role === 'assistant' && (m.isDraft || m.content.includes('[OFFER_DRAFT]')) && (
+                      <div className="mt-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-4 flex items-center justify-between shadow-sm animate-in zoom-in duration-300">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm border border-blue-100">
+                            <FileEdit className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-bold text-gray-900">Draft Ready</h4>
+                            <p className="text-xs text-gray-500">I noticed you requested a legal draft.</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => convertToDraft(m)}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center gap-2"
+                        >
+                          Open Editor <ChevronRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2 mt-2 px-1">
+                      <span className="text-xs text-gray-400 font-medium">{fmtTime(m.timestamp)}</span>
                       {m.role === 'assistant' && (
-                        <div className="flex items-center gap-0.5 ml-auto">
+                        <div className="flex items-center gap-1 ml-auto">
                           <button onClick={() => copyMsg(m)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title="Copy">
                             {copiedId === m.id ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
                           </button>
@@ -552,20 +611,20 @@ export default function AIAssistantPage() {
                     </div>
                   </div>
                   {m.role === 'user' && (
-                    <div className="w-8 h-8 bg-gray-200 rounded-xl flex items-center justify-center flex-shrink-0 mt-1">
+                    <div className="w-9 h-9 bg-gray-200 rounded-xl flex items-center justify-center flex-shrink-0 mt-1">
                       <span className="text-xs font-bold text-gray-500">You</span>
                     </div>
                   )}
                 </div>
               ))}
 
-              {/* STREAMING TEXT — shows word by word */}
+              {/* STREAMING TEXT */}
               {streamText && (
-                <div className="flex gap-3" style={{ animation: 'fadeSlideIn 0.3s ease-out' }}>
-                  <div className="w-8 h-8 bg-gradient-to-br from-gray-900 to-gray-700 rounded-xl flex items-center justify-center flex-shrink-0 mt-1 shadow-sm">
-                    <Scale className="w-3.5 h-3.5 text-white" />
+                <div className="flex gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="w-9 h-9 bg-gradient-to-br from-gray-900 to-gray-700 rounded-xl flex items-center justify-center flex-shrink-0 mt-1 shadow-sm">
+                    <Scale className="w-4 h-4 text-white" />
                   </div>
-                  <div className="max-w-[85%] bg-white border border-gray-200 rounded-2xl rounded-bl-md px-5 py-4 shadow-sm">
+                  <div className="max-w-[85%] w-full bg-white border border-gray-200 rounded-2xl rounded-bl-md px-6 py-5 shadow-sm">
                     <div className="prose-legal text-sm leading-relaxed text-gray-800"
                       dangerouslySetInnerHTML={{ __html: renderMarkdown(streamText) }} />
                     <span className="inline-block w-2 h-4 bg-gray-400 rounded-sm animate-pulse ml-0.5" />
@@ -575,18 +634,18 @@ export default function AIAssistantPage() {
 
               {/* LOADING */}
               {loading && !streamText && (
-                <div className="flex gap-3" style={{ animation: 'fadeSlideIn 0.3s ease-out' }}>
-                  <div className="w-8 h-8 bg-gradient-to-br from-gray-900 to-gray-700 rounded-xl flex items-center justify-center shadow-sm">
-                    <Scale className="w-3.5 h-3.5 text-white" />
+                <div className="flex gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="w-9 h-9 bg-gradient-to-br from-gray-900 to-gray-700 rounded-xl flex items-center justify-center shadow-sm">
+                    <Scale className="w-4 h-4 text-white" />
                   </div>
-                  <div className="bg-white border border-gray-200 px-5 py-4 rounded-2xl rounded-bl-md shadow-sm">
+                  <div className="bg-white border border-gray-200 px-6 py-5 rounded-2xl rounded-bl-md shadow-sm">
                     <div className="flex items-center gap-3">
                       <div className="flex gap-1">
                         {[0, 1, 2].map(i => (
                           <span key={i} className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: `${i * 150}ms` }} />
                         ))}
                       </div>
-                      <span className="text-sm text-gray-500">Analyzing...</span>
+                      <span className="text-sm text-gray-500 font-medium">Analyzing legal query...</span>
                     </div>
                   </div>
                 </div>
@@ -600,49 +659,51 @@ export default function AIAssistantPage() {
         {/* FILE PREVIEW */}
         {uploadedFile && (
           <div className="px-4 pb-2 max-w-4xl mx-auto w-full">
-            <div className="flex items-center gap-3 p-2.5 bg-gray-50 border border-gray-200 rounded-xl">
-              <FileText className="w-4 h-4 text-gray-500" />
-              <span className="text-sm text-gray-700 flex-1 truncate">{uploadedFile.name}</span>
-              <button onClick={() => { setUploadedFile(null); if (fileInputRef.current) fileInputRef.current.value = '' }} className="p-1 hover:bg-gray-200 rounded-lg"><X className="w-4 h-4 text-gray-500" /></button>
+            <div className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-xl animate-in slide-in-from-bottom-2">
+              <FileText className="w-5 h-5 text-gray-500" />
+              <span className="text-sm font-medium text-gray-700 flex-1 truncate">{uploadedFile.name}</span>
+              <button onClick={() => { setUploadedFile(null); if (fileInputRef.current) fileInputRef.current.value = '' }} className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors"><X className="w-4 h-4 text-gray-500" /></button>
             </div>
           </div>
         )}
 
         {/* INPUT */}
-        <div className="border-t border-gray-200 bg-white p-4">
+        <div className="border-t border-gray-200 bg-white p-4 pb-6">
           <div className="max-w-4xl mx-auto">
-            <div className="flex items-end gap-2">
+            <div className="flex items-end gap-2 bg-gray-50 p-2 rounded-2xl border border-gray-200 focus-within:border-gray-400 focus-within:ring-4 focus-within:ring-gray-100 transition-all">
               <input type="file" ref={fileInputRef} onChange={handleFile} accept=".pdf,.jpg,.jpeg,.png,.txt,.doc,.docx" className="hidden" />
               <button onClick={() => fileInputRef.current?.click()}
-                className="p-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-500 transition-all flex-shrink-0 mb-0.5 active:scale-95" title="Upload doc">
+                className="p-3 rounded-xl hover:bg-gray-200 text-gray-500 transition-all flex-shrink-0 active:scale-95" title="Upload doc">
                 <Upload className="w-5 h-5" />
               </button>
               <div className="flex-1 relative">
                 <textarea ref={textareaRef} value={input} onChange={handleInputChange}
                   onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
-                  placeholder="Ask any legal question... (Hindi or English)" rows={1} disabled={loading}
-                  className="w-full px-4 py-3 bg-gray-100 border-0 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 text-sm resize-none transition-all"
+                  placeholder="Ask a legal question... (e.g. 'Draft a legal notice')" rows={1} disabled={loading}
+                  className="w-full px-2 py-3 bg-transparent border-0 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0 text-base resize-none"
                   style={{ minHeight: '48px', maxHeight: '150px' }} />
               </div>
               <button onClick={handleSend} disabled={loading || (!input.trim() && !uploadedFile)}
-                className="p-2.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-white transition-all disabled:opacity-40 flex-shrink-0 mb-0.5 active:scale-95 hover:shadow-lg">
+                className="p-3 rounded-xl bg-gray-900 hover:bg-gray-800 text-white transition-all disabled:opacity-40 flex-shrink-0 shadow-md hover:shadow-lg active:scale-95">
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
               </button>
             </div>
-            <p className="text-xs text-gray-400 text-center mt-2.5">AI responses are for reference only. Consult a qualified advocate.</p>
+            <p className="text-xs text-gray-400 text-center mt-3 font-medium">AI responses are for reference only. Consult a qualified advocate.</p>
           </div>
         </div>
       </div>
 
-      {/* Animations CSS */}
+      {/* Global CSS for Animations */}
       <style jsx global>{`
         @keyframes fadeSlideIn {
-          from { opacity: 0; transform: translateY(8px); }
+          from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
         }
         .prose-legal h1, .prose-legal h2, .prose-legal h3 { font-family: inherit; }
-        .prose-legal hr { margin: 16px 0; }
-        .prose-legal strong { color: #111827; }
+        .prose-legal hr { margin: 24px 0; border-color: #e5e7eb; }
+        .prose-legal strong { color: #111827; font-weight: 600; }
+        .prose-legal ul, .prose-legal ol { margin-top: 1rem; margin-bottom: 1rem; }
+        .prose-legal li { margin-bottom: 0.5rem; }
       `}</style>
     </div>
   )
