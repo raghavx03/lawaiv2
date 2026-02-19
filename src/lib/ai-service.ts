@@ -137,87 +137,19 @@ async function callNvidiaLlama(
   }
 }
 
-// NVIDIA DeepSeek V3.2 (Reasoning) — Verification Model
+// NVIDIA DeepSeek V3.2 (Reasoning) — Verification Model (OPTIONAL - Model deprecated)
 async function callNvidiaDeepSeek(
   messages: AIMessage[],
   maxTokens: number = 4096
 ): Promise<AIResponse> {
-  // Use the key provided by user if available, fallback to existing logic
-  // User provided key: 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
-  // Ideally this should be in .env.local, but for now we'll check env first
-  const apiKey = process.env.NVIDIA_DEEPSEEK_API_KEY || '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'
-
-  if (!apiKey || apiKey === 'placeholder' || apiKey.includes('your_')) {
-    console.warn('NVIDIA DeepSeek key missing, using fallback simulation')
-    // Simulation fallback if key is truly missing
-    return {
-      content: "(AI Key Missing) Verification skipped.",
-      citations: [],
-      verified: false
-    }
-  }
-
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 60000)
-
-  try {
-    const response = await fetch(`${NVIDIA_BASE_URL}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'deepseek-ai/deepseek-r1', // Use R1 for reasoning as per user intent (v3.2 often maps to r1 on NVIDIA)
-        messages,
-        temperature: 0.6,
-        top_p: 0.95,
-        max_tokens: maxTokens,
-        stream: false,
-        extra_body: {
-          "chat_template_kwargs": { "thinking": true }
-        }
-      }),
-      signal: controller.signal
-    })
-
-    clearTimeout(timeoutId)
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unknown error')
-      throw new Error(`NVIDIA DeepSeek API error ${response.status}: ${errorText}`)
-    }
-
-    const data = await response.json()
-
-    if (!data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
-      throw new Error('Invalid NVIDIA DeepSeek response: no choices returned')
-    }
-
-    const content = data.choices[0]?.message?.content
-    if (!content) {
-      throw new Error('No content in NVIDIA DeepSeek response')
-    }
-
-    // Capture reasoning if available (NVIDIA might return it in a specific field or part of content)
-    // R1 usually returns <think> tags in content or reasoning_content field
-    // We clean it for display but the logic used it
-
-    return {
-      content: cleanResponse(content),
-      citations: extractCitations(content),
-      model: 'deepseek-ai/deepseek-r1', // Updated model name
-      usage: data.usage
-    }
-  } catch (error) {
-    clearTimeout(timeoutId)
-    // If error, return unverified response rather than failing completely
-    console.error('DeepSeek call failed:', error)
-    return {
-      content: "", // Empty content signals failure to verify
-      citations: [],
-      verified: false
-    }
+  // DeepSeek R1 model has been deprecated by NVIDIA (410 Gone)
+  // Verification is now optional - Llama Nemotron is sufficient for legal responses
+  console.log('DeepSeek verification skipped (model deprecated) - using Llama Nemotron only')
+  
+  return {
+    content: "", // Empty content signals no verification
+    citations: [],
+    verified: false
   }
 }
 

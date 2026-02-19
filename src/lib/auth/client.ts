@@ -1,14 +1,16 @@
 import { createBrowserClient } from '@supabase/ssr'
 import { sanitizeForLog } from '@/lib/security/log-sanitizer'
 
-// Use fallback values if environment variables are placeholders or missing
+// Get environment variables
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL
 const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-const supabaseUrl = (url && !url.includes('your_') && url !== 'placeholder') ? url : 'https://hudflljbqezmpibippyb.supabase.co'
-const supabaseKey = (key && !key.includes('your_')) ? key : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh1ZGZsbGpicWV6bXBpYmlwcHliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ1MzE4NzQsImV4cCI6MjA1MDEwNzg3NH0.Ky_7Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8'
+// Validate that we have proper credentials
+if (!url || !key) {
+  throw new Error('Missing Supabase credentials. Please check your .env.local file.')
+}
 
-const supabase = createBrowserClient(supabaseUrl, supabaseKey)
+const supabase = createBrowserClient(url, key)
 
 export { supabase }
 
