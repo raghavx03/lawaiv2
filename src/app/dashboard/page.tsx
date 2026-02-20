@@ -133,10 +133,10 @@ export default function DashboardPage() {
   const quickActions = [
     {
       name: 'AI Assistant',
+      href: '/ai-assistant',
       icon: MessageSquare,
       desc: 'Indian Law Expert',
-      badge: 'AI Powered',
-      action: () => setShowAIDrawer(true)
+      badge: 'AI Powered'
     },
     {
       name: 'Upload Document',
