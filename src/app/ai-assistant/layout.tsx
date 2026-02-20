@@ -1,5 +1,5 @@
 import { Metadata } from 'next'
-import { DashboardLayout } from '@/components/dashboard/DashboardLayout'
+import { AIAssistantWrapper } from '@/components/ai-assistant/AIAssistantWrapper'
 
 export const metadata: Metadata = {
   title: 'Indian Law AI Assistant for Lawyers',
@@ -32,8 +32,8 @@ export default function AIAssistantLayout({
   children: React.ReactNode
 }) {
   return (
-    <DashboardLayout>
+    <AIAssistantWrapper>
       {children}
-    </DashboardLayout>
+    </AIAssistantWrapper>
   )
 }
