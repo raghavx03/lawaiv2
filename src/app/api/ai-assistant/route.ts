@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
 
     conversationHistory.push({ role: 'user', content: userPrompt })
 
-    // Get AI response
+    // Get AI response with safety checks and language detection
     const { callAIService } = await import('@/lib/ai-service')
     
     let userPlan = 'FREE'
@@ -219,7 +219,8 @@ export async function POST(request: NextRequest) {
       console.log('Could not fetch user plan, using FREE')
     }
     
-    const aiResponse = await callAIService(conversationHistory, userPlan, 2000, 0.7)
+    // Call AI service with safety checks and language detection
+    const aiResponse = await callAIService(conversationHistory, userPlan, 2000, 0.7, user.id)
     const response = aiResponse.content
 
     // Save to database

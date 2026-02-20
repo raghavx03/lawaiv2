@@ -1,10 +1,12 @@
 import { createOpenAI } from '@ai-sdk/openai'
 import { streamText } from 'ai'
+import { checkSafety, generateRefusalMessage, logSafetyViolation, ViolationType } from './safety-guardrails'
 
 // NVIDIA AI Service Layer — Pure NVIDIA Integration
 // Primary: llama-3.3-nemotron-super-49b-v1.5
 // Verification: deepseek-v3.1
 // Strict citation enforcement — no answer without source
+// Safety guardrails — prevent illegal requests
 
 const NVIDIA_BASE_URL = 'https://integrate.api.nvidia.com/v1'
 
@@ -13,6 +15,10 @@ const nvidiaProvider = createOpenAI({
   baseURL: NVIDIA_BASE_URL,
   apiKey: process.env.NVIDIA_LLAMA_API_KEY || ''
 })
+
+// Language detection patterns
+const HINDI_PATTERNS = /[\u0900-\u097F]/g // Devanagari script
+const HINGLISH_PATTERNS = /\b(kya|hai|nahi|haan|bhai|bro|acha|theek|samjha|dekh|suno|sunao|likha|likhe|likhi|likho|likhe|likha|likhi|likho)\b/gi
 
 
 export interface AIMessage {
@@ -25,11 +31,29 @@ export interface AIResponse {
   citations?: string[]
   model?: string
   verified?: boolean
+  language?: 'en' | 'hi' | 'hinglish'
+  safe?: boolean
   usage?: {
     prompt_tokens?: number
     completion_tokens?: number
     total_tokens?: number
   }
+}
+
+// Detect language of user input
+export function detectLanguage(text: string): 'en' | 'hi' | 'hinglish' {
+  const hindiMatches = text.match(HINDI_PATTERNS)
+  const hinglishMatches = text.match(HINGLISH_PATTERNS)
+  
+  if (hindiMatches && hindiMatches.length > text.length * 0.3) {
+    return 'hi'
+  }
+  
+  if (hinglishMatches && hinglishMatches.length > 2) {
+    return 'hinglish'
+  }
+  
+  return 'en'
 }
 
 // Clean response formatting — strip thinking tokens and format nicely
@@ -224,37 +248,100 @@ const CITATION_SYSTEM_PROMPT = `CRITICAL RULES FOR ALL RESPONSES:
 6. Do NOT use asterisks (*) for formatting — use headings, numbered lists, and paragraphs
 7. Use Indian legal terminology and cite Indian laws, statutes, and precedents`
 
-// Main AI service — routes to NVIDIA models with citation enforcement
+// Safety enforcement system prompt
+const SAFETY_SYSTEM_PROMPT = `SAFETY RULES - CRITICAL:
+You MUST refuse requests that involve:
+- Hiding, destroying, or tampering with evidence
+- Fabricating witnesses or false affidavits
+- Manipulating courts or bribing judges
+- Forging documents or committing fraud
+- Perjury or false statements in court
+- Unauthorized legal practice
+- Representing conflicting interests
+- Blackmail, extortion, or intimidation
+- Money laundering or financial crimes
+
+If a request involves any of these, respond with:
+"I cannot assist with that. However, I can explain the legal consequences of [action] under Indian law."
+
+Then offer to explain the legal consequences instead.`
+
+// Language-specific system prompts
+function getLanguageSystemPrompt(language: 'en' | 'hi' | 'hinglish'): string {
+  const basePrompt = `You are an expert Indian legal assistant specializing in Indian law.
+
+${CITATION_SYSTEM_PROMPT}
+
+${SAFETY_SYSTEM_PROMPT}`
+
+  if (language === 'hi') {
+    return `${basePrompt}
+
+LANGUAGE INSTRUCTION: Respond in Hindi (Devanagari script). Use formal Hindi legal terminology.`
+  }
+  
+  if (language === 'hinglish') {
+    return `${basePrompt}
+
+LANGUAGE INSTRUCTION: Respond in Hinglish (Hindi written in Roman script). Mix Hindi and English naturally. Use terms like "haan", "nahi", "samjha", "dekh", etc.`
+  }
+  
+  return basePrompt
+}
+
+// Main AI service — routes to NVIDIA models with citation enforcement and safety checks
 export async function callAIService(
   messages: AIMessage[],
   userPlan: string = 'FREE',
   maxTokens: number = 4096,
-  temperature: number = 0.6
+  temperature: number = 0.6,
+  userId?: string
 ): Promise<AIResponse> {
-  // Inject citation enforcement into system prompt
+  // Extract user query for safety check
+  const userQuery = messages.filter(m => m.role === 'user').pop()?.content || ''
+  
+  // CRITICAL: Check safety before processing
+  const safetyCheck = checkSafety(userQuery)
+  if (!safetyCheck.isSafe) {
+    // Log violation
+    if (safetyCheck.violationType) {
+      await logSafetyViolation(userId || null, userQuery, safetyCheck.violationType)
+    }
+    
+    // Return refusal message
+    return {
+      content: generateRefusalMessage(safetyCheck.violationType || ViolationType.ILLEGAL_ACTIVITY),
+      citations: [],
+      model: 'nvidia/llama-3.3-nemotron-super-49b-v1.5',
+      safe: false,
+      language: 'en'
+    }
+  }
+  
+  // Detect language from user input
+  const language = detectLanguage(userQuery)
+  
+  // Inject language-specific system prompt
   const enhancedMessages = messages.map((msg) => {
     if (msg.role === 'system') {
       return {
         ...msg,
-        content: `${msg.content}\n\n${CITATION_SYSTEM_PROMPT}`
+        content: `${msg.content}\n\n${getLanguageSystemPrompt(language)}`
       }
     }
     return msg
   })
 
-  // If no system message exists, add citation enforcement
+  // If no system message exists, add language-specific system prompt
   if (!enhancedMessages.find(m => m.role === 'system')) {
     enhancedMessages.unshift({
       role: 'system',
-      content: `You are an expert legal AI assistant specializing in Indian law.\n\n${CITATION_SYSTEM_PROMPT}`
+      content: getLanguageSystemPrompt(language)
     })
   }
 
   // Call primary model (Llama Nemotron)
   const primaryResponse = await callNvidiaLlama(enhancedMessages, maxTokens, temperature)
-
-  // Extract the original user query for verification
-  const userQuery = messages.filter(m => m.role === 'user').pop()?.content || ''
 
   // Verify with DeepSeek for citation enforcement
   const verification = await verifyResponse(
@@ -268,6 +355,8 @@ export async function callAIService(
     citations: verification.citations,
     model: primaryResponse.model,
     verified: verification.verified,
+    safe: true,
+    language: language,
     usage: primaryResponse.usage
   }
 }
@@ -284,29 +373,52 @@ export async function callAIQuick(
 // Streaming AI Service for "Instant Typing Effect" - Manual Fetch Implementation
 export async function streamLegalResponse(
   messages: { role: string, content: string }[],
-  onFinish?: (completion: string) => Promise<void>
+  onFinish?: (completion: string) => Promise<void>,
+  userId?: string
 ) {
-  const apiKey = process.env.NVIDIA_LLAMA_API_KEY
-  if (!apiKey || apiKey === 'placeholder' || apiKey.includes('your_')) {
-    throw new Error('NVIDIA Llama API key not configured (Streaming)')
+  // Extract user query for safety check
+  const userQuery = messages.filter(m => m.role === 'user').pop()?.content || ''
+  
+  // CRITICAL: Check safety before streaming
+  const safetyCheck = checkSafety(userQuery)
+  if (!safetyCheck.isSafe) {
+    // Log violation
+    if (safetyCheck.violationType) {
+      await logSafetyViolation(userId || null, userQuery, safetyCheck.violationType)
+    }
+    
+    // Return refusal message as stream
+    const refusalMessage = generateRefusalMessage(safetyCheck.violationType || ViolationType.ILLEGAL_ACTIVITY)
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(refusalMessage))
+        if (onFinish) {
+          onFinish(refusalMessage).catch(e => console.error("onFinish Error:", e))
+        }
+        controller.close()
+      }
+    })
+    
+    return new Response(stream, {
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+    })
   }
-
-  // Inject system prompt for legal expertise if not present
+  
+  // Detect language
+  const language = detectLanguage(userQuery)
+  
+  // Inject language-specific system prompt
   let formattedMessages = [...messages]
   if (!formattedMessages.find(m => m.role === 'system')) {
     formattedMessages.unshift({
       role: 'system',
-      content: `You are an expert Indian legal assistant.
-      
-RULES:
-1. Cite specific Indian laws (IPC, CPC, CrPC, Acts)
-2. Be practical, concise, and professional
-3. If the user asks for a legal draft (Notice, Affidavit, Agreement, etc.):
-   - Provide the complete draft content first.
-   - IMPERATIVE: End your response with exactly: "[OFFER_DRAFT]" on a new line.
-   - This triggers the advanced drafting UI for the user.
-4. If unsure, disclaim liability`
+      content: getLanguageSystemPrompt(language)
     })
+  }
+
+  const apiKey = process.env.NVIDIA_LLAMA_API_KEY
+  if (!apiKey || apiKey === 'placeholder' || apiKey.includes('your_')) {
+    throw new Error('NVIDIA Llama API key not configured (Streaming)')
   }
 
   try {
