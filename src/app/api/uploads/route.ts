@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-server'
 import { prisma } from '@/lib/prisma'
+import { prepareDocumentForRAG } from '@/lib/embeddings'
+import { storeDocumentChunks } from '@/lib/vector-db'
 
 // Extract text from PDF using simple parsing
 async function extractTextFromPDF(buffer: Buffer): Promise<string> {
@@ -65,6 +67,8 @@ export async function POST(request: NextRequest) {
 
     // Save to database if user is authenticated
     let savedFile = null
+    let embeddingStats = { chunksCreated: 0, chunksStored: 0, chunksFailed: 0 }
+
     if (userId) {
       try {
         savedFile = await prisma.uploadedFile.create({
@@ -76,6 +80,33 @@ export async function POST(request: NextRequest) {
             content: extractedText || null
           }
         })
+
+        // Automatically embed document for RAG if text was extracted
+        if (extractedText && extractedText.length > 100) {
+          try {
+            const chunks = await prepareDocumentForRAG(
+              savedFile.id,
+              extractedText,
+              {
+                title: file.name,
+                source: 'uploaded_file',
+                pageNumber: 1
+              }
+            )
+
+            const { stored, failed } = await storeDocumentChunks(chunks)
+            embeddingStats = {
+              chunksCreated: chunks.length,
+              chunksStored: stored,
+              chunksFailed: failed
+            }
+
+            console.log(`Embedded document ${savedFile.id}: ${stored} chunks stored`)
+          } catch (embeddingError) {
+            console.warn('Failed to embed document:', embeddingError)
+            // Don't fail the upload if embedding fails
+          }
+        }
       } catch (dbError) {
         console.error('Failed to save file to database:', dbError)
       }
@@ -90,7 +121,8 @@ export async function POST(request: NextRequest) {
       fileUrl,
       extractedText: extractedText.substring(0, 5000),
       caseId,
-      linkedFeature
+      linkedFeature,
+      embedding: embeddingStats
     })
   } catch (error: any) {
     console.error('Upload error:', error)

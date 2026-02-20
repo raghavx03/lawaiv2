@@ -250,7 +250,7 @@ export default function AIAssistantPage() {
       const response = await fetch('/api/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: prompt })
+        body: JSON.stringify({ message: prompt, history: updatedMsgs.slice(0, -1) })
       })
 
       if (!response.ok) throw new Error(`API error: ${response.status}`)

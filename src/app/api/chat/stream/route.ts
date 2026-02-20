@@ -1,44 +1,91 @@
-
 export const dynamic = "force-dynamic"
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerUser } from '@/lib/auth'
 import { streamLegalResponse } from '@/lib/ai-service'
-
-export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await getServerUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const body = await request.json()
-    const message = (body.message || '').trim()
+    const { message, history } = body
 
-    if (!message || message.length > 5000) {
-      return new Response(JSON.stringify({ error: 'Invalid message' }), { 
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
+    if (!message?.trim()) {
+      return NextResponse.json({ error: 'Message is required' }, { status: 400 })
+    }
+
+    // Build conversation history
+    const conversationHistory: Array<{ role: string; content: string }> = [
+      {
+        role: 'system',
+        content: `You are LAW.AI, an Indian legal assistant for advocates.
+
+RULES:
+- Use only Indian law (IPC, CrPC, CPC, NI Act, Constitution, Evidence Act, etc.)
+- Always cite relevant sections when applicable (e.g., "Section 420 IPC", "Section 138 NI Act")
+- Explain in simple language that clients can understand
+- Add "💡 Practical Tip for Lawyer:" at the end when helpful
+- Ask ONE follow-up question if it would help provide better advice
+- Do NOT repeat legal disclaimers in every response
+- Respond in the same language as the query (Hindi, English, or Hinglish)
+
+KNOWLEDGE AREAS:
+- Criminal: IPC, CrPC, POCSO, NDPS, SC/ST Act
+- Civil: CPC, Specific Relief Act, Limitation Act
+- Family: Hindu Marriage Act, Hindu Succession, Divorce, Maintenance
+- Property: Transfer of Property Act, Registration Act, RERA
+- Commercial: NI Act (Section 138), Companies Act, Arbitration Act
+- Consumer: Consumer Protection Act 2019
+- Constitutional: Fundamental Rights, Writs (Article 32, 226)
+- Cyber: IT Act 2000
+- Labour: Industrial Disputes Act, Factories Act
+
+COURT PROCEDURES:
+- Filing FIR, complaints, petitions
+- Bail (regular, anticipatory, interim)
+- Appeals and revisions
+- Execution proceedings
+- Limitation periods
+
+FORMAT:
+- Be concise but complete
+- Use bullet points for steps/procedures
+- Cite landmark cases when relevant
+- Provide practical next steps
+
+You are helpful, accurate, and focused on actionable legal guidance.`
+      }
+    ]
+
+    // Add history if provided
+    if (history && Array.isArray(history)) {
+      history.slice(-6).forEach((msg: any) => {
+        if (msg.role === 'user' || msg.role === 'assistant') {
+          conversationHistory.push({
+            role: msg.role,
+            content: msg.content
+          })
+        }
       })
     }
 
-    // Check if NVIDIA API key is configured
-    if (!process.env.NVIDIA_LLAMA_API_KEY || process.env.NVIDIA_LLAMA_API_KEY.includes('your_')) {
-      return new Response(JSON.stringify({ error: 'AI service not configured' }), { 
-        status: 503,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
-
-    // Stream IMMEDIATELY — no auth check, no DB write before first byte
-    // This ensures <200ms time-to-first-token
-    const streamResponse = await streamLegalResponse(
-      [{ role: 'user', content: message }]
-    )
-
-    return streamResponse
-
-  } catch (error: any) {
-    console.error('Streaming API Error:', error)
-    const errorMessage = error?.message || 'AI service error'
-    return new Response(JSON.stringify({ error: errorMessage }), { 
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
+    // Add current message
+    conversationHistory.push({
+      role: 'user',
+      content: message
     })
+
+    // Stream response
+    const response = await streamLegalResponse(conversationHistory, undefined, user.id)
+    return response
+  } catch (error: any) {
+    console.error('Stream error:', error)
+    return NextResponse.json(
+      { error: error.message || 'Failed to stream response' },
+      { status: 500 }
+    )
   }
 }

@@ -184,9 +184,32 @@ export async function POST(request: NextRequest) {
       systemPrompt += buildCaseContext(caseData)
     }
 
+    // Try to retrieve RAG context if case has documents
+    let ragContext = ''
+    if (caseId) {
+      try {
+        const { generateEmbedding } = await import('@/lib/embeddings')
+        const { searchSimilarDocuments } = await import('@/lib/vector-db')
+        const { buildRAGContext } = await import('@/lib/rag-service')
+
+        // Generate embedding for user query
+        const queryEmbedding = await generateEmbedding(userPrompt)
+
+        // Search for relevant documents
+        const relevantChunks = await searchSimilarDocuments(queryEmbedding, 5, 0.3)
+
+        if (relevantChunks.length > 0) {
+          const rag = await buildRAGContext(userPrompt, relevantChunks)
+          ragContext = `\n\n[RETRIEVED DOCUMENTS]\n${rag.context}\n\nUse the above documents as primary sources for your response.`
+        }
+      } catch (ragError) {
+        console.warn('RAG retrieval failed, continuing without context:', ragError)
+      }
+    }
+
     // Build conversation history
     const conversationHistory: Array<{ role: 'system' | 'user' | 'assistant', content: string }> = [
-      { role: 'system', content: systemPrompt }
+      { role: 'system', content: systemPrompt + ragContext }
     ]
 
     if (history && Array.isArray(history)) {

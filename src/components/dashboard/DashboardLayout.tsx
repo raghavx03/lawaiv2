@@ -86,7 +86,6 @@ function DashboardContent({ children }: DashboardLayoutProps) {
     </div>
   )
 }
-}
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
