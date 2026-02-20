@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { toast, Toaster } from 'react-hot-toast'
 import { Search, BookOpen, Download, Clock, FileText, History, Loader2, Sparkles, Copy, Eye, X } from 'lucide-react'
+import { PremiumButton, PremiumCard, StatCard } from '@/components/premium'
 
 interface Research {
   id: string
@@ -131,28 +132,30 @@ export default function ResearchPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Legal Research</h1>
-          <p className="text-gray-500 text-sm mt-1">AI-powered legal research assistant</p>
+          <h1 className="text-premium-h1 text-slate-900 dark:text-white">Legal Research</h1>
+          <p className="text-premium-body text-slate-600 dark:text-slate-400 mt-1">AI-powered legal research assistant</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+          <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 text-xs font-medium rounded-full">
             {profile?.plan || 'FREE'} Plan
           </span>
-          <button 
+          <PremiumButton 
             onClick={() => setShowHistory(!showHistory)}
-            className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm text-gray-700"
+            variant="secondary"
+            size="md"
+            icon={<History className="h-4 w-4" />}
           >
-            <History className="h-4 w-4" />
             <span className="hidden sm:inline">History</span>
-          </button>
-          <button 
+          </PremiumButton>
+          <PremiumButton 
             onClick={exportResults}
             disabled={research.length === 0}
-            className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm text-gray-700 disabled:opacity-50"
+            variant="secondary"
+            size="md"
+            icon={<Download className="h-4 w-4" />}
           >
-            <Download className="h-4 w-4" />
             <span className="hidden sm:inline">Export</span>
-          </button>
+          </PremiumButton>
         </div>
       </div>
 
@@ -163,41 +166,42 @@ export default function ResearchPage() {
           { label: 'This Month', value: research.filter(r => new Date(r.createdAt).getMonth() === new Date().getMonth()).length },
           { label: 'Today', value: research.filter(r => new Date(r.createdAt).toDateString() === new Date().toDateString()).length }
         ].map((stat) => (
-          <div key={stat.label} className="bg-white border border-gray-200 rounded-xl p-3 sm:p-4">
-            <p className="text-xs sm:text-sm text-gray-500">{stat.label}</p>
-            <p className="text-xl sm:text-2xl font-semibold text-gray-900">{stat.value}</p>
-          </div>
+          <StatCard 
+            key={stat.label}
+            label={stat.label}
+            value={stat.value}
+            color="indigo"
+          />
         ))}
       </div>
 
       {/* History Panel */}
       {showHistory && (
-        <div className="mb-6 p-4 bg-gray-50 rounded-2xl border border-gray-200">
-          <h3 className="font-medium text-gray-900 mb-3">Recent Research</h3>
+        <PremiumCard className="mb-6" title="Recent Research">
           {fetchingHistory ? (
             <div className="flex items-center justify-center py-4">
-              <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+              <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
             </div>
           ) : research.length > 0 ? (
             <div className="space-y-2 max-h-60 overflow-y-auto">
               {research.slice(0, 10).map((item) => (
                 <div 
                   key={item.id} 
-                  className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-200 hover:border-gray-300 cursor-pointer"
+                  className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 cursor-pointer"
                   onClick={() => viewResearch(item)}
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-gray-900 text-sm truncate">{item.query}</p>
-                    <p className="text-xs text-gray-500">{new Date(item.createdAt).toLocaleDateString()}</p>
+                    <p className="font-medium text-slate-900 dark:text-white text-sm truncate">{item.query}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{new Date(item.createdAt).toLocaleDateString()}</p>
                   </div>
-                  <Eye className="h-4 w-4 text-gray-400 flex-shrink-0 ml-2" />
+                  <Eye className="h-4 w-4 text-slate-400 flex-shrink-0 ml-2" />
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-500">No research history yet</p>
+            <p className="text-sm text-slate-600 dark:text-slate-400">No research history yet</p>
           )}
-        </div>
+        </PremiumCard>
       )}
 
       {/* Viewing Saved Research */}
@@ -205,124 +209,112 @@ export default function ResearchPage() {
         <div className="space-y-4 mb-6">
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
-              <h2 className="text-lg font-semibold text-gray-900 truncate">{viewingResearch.query}</h2>
-              <p className="text-sm text-gray-500">{new Date(viewingResearch.createdAt).toLocaleDateString()}</p>
+              <h2 className="text-premium-h2 text-slate-900 dark:text-white truncate">{viewingResearch.query}</h2>
+              <p className="text-sm text-slate-600 dark:text-slate-400">{new Date(viewingResearch.createdAt).toLocaleDateString()}</p>
             </div>
             <div className="flex gap-2">
-              <button onClick={copyToClipboard} className="p-2 rounded-xl border border-gray-200 hover:bg-gray-50">
-                <Copy className="h-5 w-5 text-gray-600" />
-              </button>
-              <button onClick={reset} className="p-2 rounded-xl border border-gray-200 hover:bg-gray-50">
-                <X className="h-5 w-5 text-gray-600" />
-              </button>
+              <PremiumButton onClick={copyToClipboard} variant="ghost" size="sm" icon={<Copy className="h-5 w-5" />} />
+              <PremiumButton onClick={reset} variant="ghost" size="sm" icon={<X className="h-5 w-5" />} />
             </div>
           </div>
-          <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 sm:p-6 max-h-[50vh] overflow-y-auto">
-            <p className="text-gray-800 whitespace-pre-wrap leading-relaxed text-sm">{viewingResearch.result}</p>
-          </div>
+          <PremiumCard hoverable={false}>
+            <div className="bg-slate-50 dark:bg-slate-800/50 p-4 sm:p-6 max-h-[50vh] overflow-y-auto rounded-lg">
+              <p className="text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed text-sm">{viewingResearch.result}</p>
+            </div>
+          </PremiumCard>
         </div>
       )}
 
       {/* Search Box */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Search Legal Database</h2>
-        
+      <PremiumCard className="mb-6" title="Search Legal Database">
         <div className="space-y-4">
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search: Section 420 IPC, bail provisions, case laws..."
-              className="w-full pl-12 pr-4 py-3.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent text-sm"
+              className="w-full pl-12 pr-4 py-3.5 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-600 text-sm"
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
             />
           </div>
           
           {/* Quick Searches */}
           <div>
-            <p className="text-xs text-gray-500 mb-2">Quick searches:</p>
+            <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">Quick searches:</p>
             <div className="flex flex-wrap gap-2">
               {quickSearches.slice(0, 4).map((tag) => (
-                <button 
+                <PremiumButton 
                   key={tag}
                   onClick={() => { setQuery(tag); handleSearch(tag); }}
-                  className="px-3 py-1.5 bg-gray-100 text-gray-700 text-xs rounded-lg hover:bg-gray-200 transition-colors"
+                  variant="secondary"
+                  size="sm"
                 >
                   {tag}
-                </button>
+                </PremiumButton>
               ))}
             </div>
           </div>
           
-          <button 
+          <PremiumButton 
             onClick={() => handleSearch()}
             disabled={loading || !query.trim()} 
-            className="w-full py-3.5 bg-gray-900 hover:bg-gray-800 text-white font-medium rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            variant="primary"
+            size="md"
+            className="w-full"
+            icon={loading ? undefined : <Sparkles className="h-5 w-5" />}
           >
-            {loading ? (
-              <>
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Researching...
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-5 w-5" />
-                Search
-              </>
-            )}
-          </button>
+            {loading ? 'Researching...' : 'Search'}
+          </PremiumButton>
         </div>
-      </div>
+      </PremiumCard>
 
       {/* Current Result */}
       {currentResult && !viewingResearch && (
-        <div className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-6">
+        <PremiumCard className="mb-6" title="Research Result">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Research Result</h2>
-            <div className="flex gap-2">
-              <button onClick={copyToClipboard} className="p-2 rounded-xl hover:bg-gray-100">
-                <Copy className="h-5 w-5 text-gray-500" />
-              </button>
-            </div>
+            <PremiumButton onClick={copyToClipboard} variant="ghost" size="sm" icon={<Copy className="h-5 w-5" />} />
           </div>
-          <div className="bg-gray-50 rounded-xl p-4 max-h-[50vh] overflow-y-auto">
-            <p className="text-gray-800 whitespace-pre-wrap leading-relaxed text-sm">{currentResult}</p>
+          <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 max-h-[50vh] overflow-y-auto">
+            <p className="text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed text-sm">{currentResult}</p>
           </div>
-        </div>
+        </PremiumCard>
       )}
 
       {/* Empty State */}
       {!currentResult && !viewingResearch && research.length === 0 && (
-        <div className="bg-white border border-gray-200 rounded-2xl p-8 sm:p-12 text-center">
-          <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <BookOpen className="h-7 w-7 sm:h-8 sm:w-8 text-gray-400" />
+        <PremiumCard hoverable={false} className="mb-6">
+          <div className="text-center py-8">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <BookOpen className="h-7 w-7 sm:h-8 sm:w-8 text-slate-400" />
+            </div>
+            <h3 className="text-premium-h3 text-slate-900 dark:text-white mb-2">Start Your Research</h3>
+            <p className="text-premium-body text-slate-600 dark:text-slate-400 mb-4">Search through legal databases, case laws, and precedents</p>
+            <div className="flex flex-wrap justify-center gap-2">
+              {['IPC Sections', 'Case Laws', 'Legal Precedents', 'Court Judgments'].map((tag) => (
+                <span key={tag} className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs rounded-full">
+                  {tag}
+                </span>
+              ))}
+            </div>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Start Your Research</h3>
-          <p className="text-gray-500 mb-4 text-sm">Search through legal databases, case laws, and precedents</p>
-          <div className="flex flex-wrap justify-center gap-2">
-            {['IPC Sections', 'Case Laws', 'Legal Precedents', 'Court Judgments'].map((tag) => (
-              <span key={tag} className="px-3 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
-                {tag}
-              </span>
-            ))}
-          </div>
-        </div>
+        </PremiumCard>
       )}
 
       {/* More Quick Searches */}
-      <div className="mt-6 bg-gray-50 border border-gray-200 rounded-2xl p-4 sm:p-6">
-        <h3 className="text-sm font-medium text-gray-900 mb-3">Popular Legal Topics</h3>
+      <div className="mt-6 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 sm:p-6">
+        <h3 className="text-sm font-medium text-slate-900 dark:text-white mb-3">Popular Legal Topics</h3>
         <div className="flex flex-wrap gap-2">
           {quickSearches.map((tag) => (
-            <button 
+            <PremiumButton 
               key={tag}
               onClick={() => { setQuery(tag); handleSearch(tag); }}
-              className="px-3 py-2 bg-white border border-gray-200 text-gray-700 text-xs rounded-xl hover:border-gray-300 transition-colors"
+              variant="ghost"
+              size="sm"
             >
               {tag}
-            </button>
+            </PremiumButton>
           ))}
         </div>
       </div>

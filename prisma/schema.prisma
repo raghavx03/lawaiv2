@@ -631,3 +631,56 @@ enum FeatureType {
   DRAFTS
   RESEARCH
 }
+
+// ============================================
+// MONETIZATION MODELS
+// ============================================
+
+// Analytics events for tracking user actions
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id") @db.Uuid
+  eventType String   @map("event_type") // "contract_analyzed", "user_signup", "conversion", etc.
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("analytics_events")
+}
+
+// Query logs for contract analyzer
+model QueryLog {
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id") @db.Uuid
+  contractType  String   @map("contract_type") // "employment", "nda", "service_agreement", etc.
+  riskScore     Int      @map("risk_score") // 0-100
+  analysisTime  Int      @map("analysis_time") // milliseconds
+  redFlagCount  Int      @map("red_flag_count")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([contractType])
+  @@index([createdAt])
+  @@map("query_logs")
+}
+
+// Subscription management
+model Subscription {
+  id                  String    @id @default(cuid())
+  userId              String    @unique @map("user_id") @db.Uuid
+  tier                String    // "free", "pro", "enterprise"
+  status              String    // "active", "cancelled", "expired"
+  queriesUsed         Int       @default(0) @map("queries_used")
+  queriesLimit        Int       @map("queries_limit") // 5 for free, unlimited for pro
+  stripeCustomerId    String?   @map("stripe_customer_id")
+  stripeSubscriptionId String?  @map("stripe_subscription_id")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  expiresAt           DateTime? @map("expires_at")
+  lastResetAt         DateTime? @map("last_reset_at")
+
+  @@index([userId])
+  @@index([tier])
+  @@map("subscriptions")
+}

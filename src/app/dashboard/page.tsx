@@ -15,6 +15,7 @@ import { UsageProgressBar } from '@/components/shared/UsageProgressBar'
 import { CaseHealthWidget } from '@/components/shared/CaseHealthWidget'
 import { RecentActivity } from '@/components/dashboard/RecentActivity'
 import { SmartSuggestions } from '@/components/dashboard/SmartSuggestions'
+import { StatCard, PremiumButton, PremiumCard, SkeletonLoader } from '@/components/premium'
 import {
   MessageSquare,
   FileText,
@@ -110,8 +111,13 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-8 h-8 border-4 border-gray-200 border-t-gray-900 rounded-full animate-spin" />
+      <div className="space-y-6">
+        <div className="h-10 w-48 skeleton-premium rounded-lg" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-32 skeleton-premium rounded-lg" />
+          ))}
+        </div>
       </div>
     )
   }
@@ -124,10 +130,34 @@ export default function DashboardPage() {
   const estimatedHoursSaved = Math.round((stats?.totalChats || 0) * 0.5 + (stats?.totalDrafts || 0) * 2)
 
   const statCards = [
-    { label: 'Active Cases', value: pendingCases, icon: Briefcase, color: 'bg-blue-50 text-blue-600' },
-    { label: 'Drafts Created', value: stats?.totalDrafts || 0, icon: FileText, color: 'bg-green-50 text-green-600' },
-    { label: 'Hours Saved', value: `${estimatedHoursSaved}h`, icon: Timer, color: 'bg-purple-50 text-purple-600' },
-    { label: 'Upcoming Hearings', value: upcomingHearings, icon: Calendar, color: 'bg-amber-50 text-amber-600' },
+    { 
+      label: 'Active Cases', 
+      value: pendingCases, 
+      icon: <Briefcase className="h-5 w-5" />,
+      color: 'indigo' as const,
+      trend: { value: 12, isPositive: true, label: 'from last month' }
+    },
+    { 
+      label: 'Drafts Created', 
+      value: stats?.totalDrafts || 0, 
+      icon: <FileText className="h-5 w-5" />,
+      color: 'emerald' as const,
+      trend: { value: 8, isPositive: true, label: 'this month' }
+    },
+    { 
+      label: 'Hours Saved', 
+      value: `${estimatedHoursSaved}h`, 
+      icon: <Timer className="h-5 w-5" />,
+      color: 'amber' as const,
+      trend: { value: 15, isPositive: true, label: 'total' }
+    },
+    { 
+      label: 'Upcoming Hearings', 
+      value: upcomingHearings, 
+      icon: <Calendar className="h-5 w-5" />,
+      color: 'blue' as const,
+      trend: { value: 3, isPositive: false, label: 'next 30 days' }
+    },
   ]
 
   const quickActions = [
@@ -183,127 +213,127 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div className="space-y-6 sm:space-y-8">
+    <div className="space-y-8">
       <Toaster position="top-right" />
 
       {/* Resume Last Case Prompt */}
       {showResumePrompt && lastCase && (
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 sm:p-5 shadow-sm">
+        <PremiumCard className="border-indigo-200 dark:border-indigo-900 bg-indigo-50 dark:bg-indigo-950/30">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center">
-                <Briefcase className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+              <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/50 rounded-lg flex items-center justify-center">
+                <Briefcase className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Continue where you left off?</p>
-                <p className="font-semibold text-gray-900 dark:text-white">{lastCase.cnrNumber}</p>
+                <p className="text-sm text-indigo-600 dark:text-indigo-400 font-medium">Continue where you left off?</p>
+                <p className="font-semibold text-slate-900 dark:text-white mt-1">{lastCase.cnrNumber}</p>
                 {lastCase.petitioner && (
-                  <p className="text-sm text-gray-600 dark:text-gray-300">{lastCase.petitioner} vs {lastCase.respondent}</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{lastCase.petitioner} vs {lastCase.respondent}</p>
                 )}
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button
+              <PremiumButton
+                size="sm"
                 onClick={handleResumeCase}
-                className="px-4 py-2 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 text-sm font-medium rounded-xl transition-colors"
               >
                 Resume
-              </button>
+              </PremiumButton>
               <button
                 onClick={handleDismissResume}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
+                className="p-2 hover:bg-indigo-200 dark:hover:bg-indigo-900/50 rounded-lg transition-colors"
               >
-                <X className="h-5 w-5 text-gray-400" />
+                <X className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
               </button>
             </div>
           </div>
-        </div>
+        </PremiumCard>
       )}
 
       {/* Welcome Section */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-premium-h1 text-slate-900 dark:text-white">
             Welcome back, {profile?.fullName?.split(' ')[0] || 'User'}
           </h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm sm:text-base">
+          <p className="text-premium-body text-slate-600 dark:text-slate-400 mt-2">
             {activeCase
               ? `Working on: ${activeCase.cnrNumber}`
               : "Here's your legal work overview"}
           </p>
         </div>
         <Link href="/case-tracker">
-          <button className="inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 font-medium rounded-xl transition-colors text-sm sm:text-base">
+          <PremiumButton size="lg">
             <Plus className="h-4 w-4" />
             Add New Case
-          </button>
+          </PremiumButton>
         </Link>
       </div>
 
       {/* Active Case Banner */}
       {activeCase && (
-        <div className="bg-gray-900 dark:bg-gray-800 text-white rounded-2xl p-4 sm:p-5 border border-transparent dark:border-gray-700">
+        <PremiumCard className="bg-gradient-to-r from-indigo-600 to-indigo-700 dark:from-indigo-900 dark:to-indigo-800 border-0 text-white">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
                 <Briefcase className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm text-white/60">Active Case</p>
-                <p className="font-semibold">{activeCase.cnrNumber}</p>
+                <p className="text-sm text-white/70">Active Case</p>
+                <p className="font-semibold text-lg">{activeCase.cnrNumber}</p>
               </div>
             </div>
             <div className="flex items-center gap-4 text-sm">
               {activeCase.nextHearing && (
                 <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-white/60" />
+                  <Calendar className="h-4 w-4 text-white/70" />
                   <span>Next: {activeCase.nextHearing}</span>
                 </div>
               )}
-              <span className="px-2.5 py-1 bg-white/10 rounded-full text-xs">
+              <span className="px-3 py-1 bg-white/20 rounded-full text-xs font-medium">
                 {activeCase.status || 'Pending'}
               </span>
             </div>
           </div>
-        </div>
+        </PremiumCard>
       )}
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((stat) => (
-          <div key={stat.label} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 sm:p-5 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-all">
-            <div className="flex items-center justify-between mb-4">
-              <div className={`w-11 h-11 ${stat.color} dark:bg-opacity-20 rounded-xl flex items-center justify-center`}>
-                <stat.icon className="h-5 w-5" />
-              </div>
-            </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{statsLoading ? '...' : stat.value}</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{stat.label}</p>
-          </div>
+          <StatCard
+            key={stat.label}
+            label={stat.label}
+            value={statsLoading ? '...' : stat.value}
+            icon={stat.icon}
+            color={stat.color}
+            trend={stat.trend}
+            loading={statsLoading}
+          />
         ))}
       </div>
 
       {/* Quick Actions */}
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-3 sm:gap-4">
+        <h2 className="text-premium-h2 text-slate-900 dark:text-white mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {quickActions.map((action) => {
             const content = (
-              <div className="group bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 sm:p-5 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md transition-all cursor-pointer flex flex-col h-full min-h-[140px]">
-                <div className="w-11 h-11 bg-gray-100 dark:bg-gray-700 group-hover:bg-gray-900 dark:group-hover:bg-white text-gray-600 dark:text-gray-300 group-hover:text-white dark:group-hover:text-gray-900 rounded-xl flex items-center justify-center mb-3 transition-colors flex-shrink-0">
+              <PremiumCard hoverable className="flex flex-col h-full min-h-[140px] cursor-pointer group">
+                <div className="w-11 h-11 bg-indigo-100 dark:bg-indigo-900/50 group-hover:bg-indigo-600 dark:group-hover:bg-indigo-600 text-indigo-600 dark:text-indigo-400 group-hover:text-white rounded-lg flex items-center justify-center mb-3 transition-colors flex-shrink-0">
                   <action.icon className="h-5 w-5" />
                 </div>
                 <div className="flex-1 flex flex-col">
-                  <h3 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight">{action.name}</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-tight">{action.desc}</p>
+                  <h3 className="font-semibold text-slate-900 dark:text-white text-sm leading-tight">{action.name}</h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-tight">{action.desc}</p>
                 </div>
                 {action.badge && (
-                  <div className="mt-auto pt-2 flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
+                  <div className="mt-auto pt-2 flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400">
                     <Sparkles className="h-3 w-3" />
                     <span>{action.badge}</span>
                   </div>
                 )}
-              </div>
+              </PremiumCard>
             )
 
             if (action.action) {
@@ -324,20 +354,14 @@ export default function DashboardPage() {
       </div>
 
       {/* Recent Activity & Smart Suggestions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        {/* Recent Activity - Real Timeline */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <RecentActivity />
-
-        {/* Smart Suggestions */}
         <SmartSuggestions />
       </div>
 
       {/* Usage & Case Health Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        {/* Usage Progress */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {!isPro && <UsageProgressBar />}
-
-        {/* Case Health Widget */}
         {activeCase && <CaseHealthWidget />}
       </div>
 
@@ -350,55 +374,47 @@ export default function DashboardPage() {
       >
         <div className="p-5 space-y-4">
           {activeCase && (
-            <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-xl text-sm">
-              <Briefcase className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-              <span className="text-gray-600 dark:text-gray-300">Linked to: {activeCase.cnrNumber}</span>
+            <div className="flex items-center gap-2 px-3 py-2 bg-indigo-50 dark:bg-indigo-950/30 rounded-lg text-sm border border-indigo-200 dark:border-indigo-800">
+              <Briefcase className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+              <span className="text-indigo-700 dark:text-indigo-300">Linked to: {activeCase.cnrNumber}</span>
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Ask a legal question</label>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Ask a legal question</label>
             <textarea
               value={aiInput}
               onChange={(e) => setAiInput(e.target.value)}
               placeholder="e.g., What are the grounds for bail under Section 437 CrPC?"
-              className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white text-sm resize-none"
+              className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 text-sm resize-none"
               rows={4}
             />
           </div>
 
-          <button
+          <PremiumButton
             onClick={handleQuickAI}
             disabled={aiLoading || !aiInput.trim()}
-            className="w-full py-3 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 font-medium rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            isLoading={aiLoading}
+            className="w-full"
           >
-            {aiLoading ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white/30 dark:border-gray-900/30 border-t-white dark:border-t-gray-900 rounded-full animate-spin" />
-                Thinking...
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-4 w-4" />
-                Get Answer
-              </>
-            )}
-          </button>
+            <Sparkles className="h-4 w-4" />
+            Get Answer
+          </PremiumButton>
 
           {aiResponse && (
-            <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-700">
-              <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{aiResponse}</p>
-            </div>
+            <PremiumCard className="bg-slate-50 dark:bg-slate-800/50">
+              <p className="text-sm text-slate-800 dark:text-slate-200 whitespace-pre-wrap">{aiResponse}</p>
+            </PremiumCard>
           )}
 
-          <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Quick questions:</p>
+          <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
+            <p className="text-xs text-slate-600 dark:text-slate-400 mb-3 font-medium">Quick questions:</p>
             <div className="flex flex-wrap gap-2">
               {['Bail provisions', 'Section 138 NI Act', 'Consumer complaint'].map((q) => (
                 <button
                   key={q}
                   onClick={() => setAiInput(q)}
-                  className="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-xs rounded-lg transition-colors"
+                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 text-xs rounded-lg transition-colors"
                 >
                   {q}
                 </button>
@@ -416,9 +432,9 @@ export default function DashboardPage() {
       >
         <div className="space-y-4">
           {activeCase && (
-            <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-xl text-sm">
-              <Briefcase className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-              <span className="text-gray-600 dark:text-gray-300">Will be linked to: {activeCase.cnrNumber}</span>
+            <div className="flex items-center gap-2 px-3 py-2 bg-indigo-50 dark:bg-indigo-950/30 rounded-lg text-sm border border-indigo-200 dark:border-indigo-800">
+              <Briefcase className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+              <span className="text-indigo-700 dark:text-indigo-300">Will be linked to: {activeCase.cnrNumber}</span>
             </div>
           )}
 

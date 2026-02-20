@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { toast, Toaster } from 'react-hot-toast'
 import { Search, Book, FileText, ChevronRight, Loader2, Eye, X, Bookmark, BookmarkCheck } from 'lucide-react'
+import { PremiumButton, PremiumCard, StatCard } from '@/components/premium'
 
 interface Act {
   id: string
@@ -168,11 +169,11 @@ export default function ActsExplorerPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Acts Explorer</h1>
-          <p className="text-gray-500 text-sm mt-1">Browse Indian legal acts and sections</p>
+          <h1 className="text-premium-h1 text-slate-900 dark:text-white">Acts Explorer</h1>
+          <p className="text-premium-body text-slate-600 dark:text-slate-400 mt-1">Browse Indian legal acts and sections</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+          <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 text-xs font-medium rounded-full">
             {profile?.plan || 'FREE'} Plan
           </span>
         </div>
@@ -185,38 +186,40 @@ export default function ActsExplorerPage() {
           { label: 'Total Sections', value: acts.reduce((sum, act) => sum + act.sectionsCount, 0).toLocaleString() },
           { label: 'Saved', value: savedActs.length }
         ].map((stat) => (
-          <div key={stat.label} className="bg-white border border-gray-200 rounded-xl p-3 sm:p-4">
-            <p className="text-xs sm:text-sm text-gray-500">{stat.label}</p>
-            <p className="text-xl sm:text-2xl font-semibold text-gray-900">{stat.value}</p>
-          </div>
+          <StatCard 
+            key={stat.label}
+            label={stat.label}
+            value={stat.value}
+            color="indigo"
+          />
         ))}
       </div>
 
       {/* Viewing Act Details */}
       {selectedAct && (
-        <div className="mb-6 bg-white border border-gray-200 rounded-2xl p-4 sm:p-6">
+        <PremiumCard className="mb-6">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">{selectedAct.title}</h2>
-              <p className="text-sm text-gray-500">{selectedAct.actId} • {selectedAct.year}</p>
+              <h2 className="text-premium-h2 text-slate-900 dark:text-white">{selectedAct.title}</h2>
+              <p className="text-premium-body text-slate-600 dark:text-slate-400">{selectedAct.actId} • {selectedAct.year}</p>
             </div>
-            <button onClick={() => setSelectedAct(null)} className="p-2 rounded-xl hover:bg-gray-100">
-              <X className="h-5 w-5 text-gray-500" />
+            <button onClick={() => setSelectedAct(null)} className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800">
+              <X className="h-5 w-5 text-slate-500" />
             </button>
           </div>
           
-          <p className="text-gray-600 text-sm mb-4">{selectedAct.description}</p>
+          <p className="text-slate-600 dark:text-slate-400 text-sm mb-4">{selectedAct.description}</p>
           
           <div className="flex items-center gap-3 mb-4">
-            <span className="px-3 py-1 bg-gray-100 text-gray-600 text-xs rounded-lg">
+            <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs rounded-lg">
               {selectedAct.sectionsCount} Sections
             </span>
             <button
               onClick={() => toggleSaveAct(selectedAct.id)}
               className={`flex items-center gap-2 px-3 py-1 rounded-lg text-xs ${
                 savedActs.includes(selectedAct.id)
-                  ? 'bg-yellow-50 text-yellow-700'
-                  : 'bg-gray-100 text-gray-600'
+                  ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
               }`}
             >
               {savedActs.includes(selectedAct.id) ? <BookmarkCheck className="h-3 w-3" /> : <Bookmark className="h-3 w-3" />}
@@ -226,40 +229,40 @@ export default function ActsExplorerPage() {
 
           {selectedAct.sections && selectedAct.sections.length > 0 && (
             <div className="space-y-3">
-              <h3 className="text-sm font-medium text-gray-900">Key Sections</h3>
+              <h3 className="text-sm font-medium text-slate-900 dark:text-white">Key Sections</h3>
               {selectedAct.sections.map((section) => (
-                <div key={section.number} className="p-3 bg-gray-50 rounded-xl border border-gray-200">
+                <div key={section.number} className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="px-2 py-0.5 bg-gray-900 text-white text-xs font-medium rounded">
+                    <span className="px-2 py-0.5 bg-slate-900 dark:bg-slate-700 text-white dark:text-slate-100 text-xs font-medium rounded">
                       Section {section.number}
                     </span>
-                    <span className="text-sm font-medium text-gray-900">{section.title}</span>
+                    <span className="text-sm font-medium text-slate-900 dark:text-white">{section.title}</span>
                   </div>
-                  <p className="text-sm text-gray-600">{section.content}</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">{section.content}</p>
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </PremiumCard>
       )}
 
       {/* Search and Filter */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-4 mb-6">
+      <PremiumCard className="mb-6">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search acts..."
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 text-sm"
+              className="w-full pl-10 pr-4 py-2.5 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-600 text-sm"
             />
           </div>
           <select
             value={selectedYear}
             onChange={(e) => setSelectedYear(e.target.value)}
-            className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+            className="px-4 py-2.5 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
           >
             <option value="">All Years</option>
             {years.map(year => (
@@ -267,28 +270,25 @@ export default function ActsExplorerPage() {
             ))}
           </select>
         </div>
-      </div>
+      </PremiumCard>
 
       {/* Acts Grid */}
       {filteredActs.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {filteredActs.map((act) => (
-            <div 
-              key={act.id} 
-              className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 hover:border-gray-300 transition-colors"
-            >
+            <PremiumCard key={act.id} hoverable>
               <div className="flex justify-between items-start mb-3">
-                <div className="p-2 bg-gray-100 rounded-xl">
-                  <FileText className="h-5 w-5 text-gray-600" />
+                <div className="p-2 bg-indigo-100 dark:bg-indigo-950/30 rounded-xl">
+                  <FileText className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-lg">
+                  <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-medium rounded-lg">
                     {act.year}
                   </span>
                   <button
                     onClick={(e) => { e.stopPropagation(); toggleSaveAct(act.id); }}
                     className={`p-1.5 rounded-lg ${
-                      savedActs.includes(act.id) ? 'text-yellow-600' : 'text-gray-400 hover:text-gray-600'
+                      savedActs.includes(act.id) ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-400'
                     }`}
                   >
                     {savedActs.includes(act.id) ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
@@ -296,53 +296,58 @@ export default function ActsExplorerPage() {
                 </div>
               </div>
 
-              <h3 className="text-base font-medium text-gray-900 mb-2">
+              <h3 className="text-base font-medium text-slate-900 dark:text-white mb-2">
                 {act.title}
               </h3>
 
-              <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 line-clamp-2">
                 {act.description}
               </p>
 
-              <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-                <span className="flex items-center text-xs text-gray-500">
+              <div className="flex justify-between items-center pt-3 border-t border-slate-200 dark:border-slate-700">
+                <span className="flex items-center text-xs text-slate-500 dark:text-slate-400">
                   <Book className="h-3.5 w-3.5 mr-1" />
                   {act.sectionsCount} sections
                 </span>
-                <button
+                <PremiumButton
                   onClick={() => viewAct(act)}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-medium rounded-lg transition-colors"
+                  variant="primary"
+                  size="sm"
+                  icon={<ChevronRight className="h-3 w-3" />}
                 >
                   View
-                  <ChevronRight className="h-3 w-3" />
-                </button>
+                </PremiumButton>
               </div>
-            </div>
+            </PremiumCard>
           ))}
         </div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-2xl p-8 sm:p-12 text-center">
-          <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Book className="h-7 w-7 sm:h-8 sm:w-8 text-gray-400" />
+        <PremiumCard hoverable={false}>
+          <div className="text-center py-8">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Book className="h-7 w-7 sm:h-8 sm:w-8 text-slate-400" />
+            </div>
+            <h3 className="text-premium-h3 text-slate-900 dark:text-white mb-2">No acts found</h3>
+            <p className="text-premium-body text-slate-600 dark:text-slate-400">Try adjusting your search or filters</p>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No acts found</h3>
-          <p className="text-gray-500 text-sm">Try adjusting your search or filters</p>
-        </div>
+        </PremiumCard>
       )}
 
       {/* Features */}
-      <div className="mt-8 bg-gray-50 border border-gray-200 rounded-2xl p-4 sm:p-6">
-        <h3 className="text-sm font-medium text-gray-900 mb-4 text-center">Database Features</h3>
+      <div className="mt-8 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 sm:p-6">
+        <h3 className="text-sm font-medium text-slate-900 dark:text-white mb-4 text-center">Database Features</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
             { title: 'Comprehensive Coverage', description: 'Complete collection of Indian legal acts' },
             { title: 'Advanced Search', description: 'Search across titles, descriptions, and sections' },
             { title: 'Detailed Information', description: 'Sections, amendments, and related cases' }
           ].map((feature) => (
-            <div key={feature.title} className="text-center p-4 bg-white rounded-xl border border-gray-200">
-              <h4 className="font-medium text-gray-900 text-sm mb-1">{feature.title}</h4>
-              <p className="text-xs text-gray-500">{feature.description}</p>
-            </div>
+            <PremiumCard key={feature.title} hoverable={false}>
+              <div className="text-center">
+                <h4 className="font-medium text-slate-900 dark:text-white text-sm mb-1">{feature.title}</h4>
+                <p className="text-xs text-slate-600 dark:text-slate-400">{feature.description}</p>
+              </div>
+            </PremiumCard>
           ))}
         </div>
       </div>

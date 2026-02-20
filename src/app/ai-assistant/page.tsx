@@ -9,6 +9,7 @@ import {
   Copy, Check, ChevronRight, MessageSquare, Clock,
   BookOpen, Briefcase, HelpCircle, FileEdit, Menu, Globe
 } from 'lucide-react'
+import { PremiumButton, PremiumCard } from '@/components/premium'
 
 // ============ TYPES ============
 interface Message {
@@ -396,66 +397,70 @@ export default function AIAssistantPage() {
       {sidebarOpen && <div className="fixed inset-0 bg-black/40 z-40 lg:hidden backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />}
 
       <aside className={`
-        fixed inset-y-0 left-0 z-50 w-80 bg-gray-50 border-r border-gray-200 flex flex-col
+        fixed inset-y-0 left-0 z-50 w-80 bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col
         transform transition-transform duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:relative lg:w-72
       `}>
-        <div className="p-4 border-b border-gray-200">
+        <div className="p-4 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-gray-900 to-gray-700 rounded-lg flex items-center justify-center shadow-sm">
+              <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-lg flex items-center justify-center shadow-sm">
                 <Scale className="w-4 h-4 text-white" />
               </div>
-              <span className="font-bold text-gray-900 text-lg">LAW.AI</span>
+              <span className="font-bold text-slate-900 dark:text-white text-lg">LAW.AI</span>
             </div>
-            <button onClick={() => setSidebarOpen(false)} className="lg:hidden p-1.5 hover:bg-gray-200 rounded-lg">
+            <button onClick={() => setSidebarOpen(false)} className="lg:hidden p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg">
               <X className="w-4 h-4" />
             </button>
           </div>
-          <button onClick={newSession}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium rounded-xl transition-all hover:shadow-lg active:scale-[0.98]">
-            <Plus className="w-4 h-4" /> New Chat
-          </button>
+          <PremiumButton onClick={newSession}
+            variant="primary"
+            size="md"
+            className="w-full"
+            icon={<Plus className="w-4 h-4" />}
+          >
+            New Chat
+          </PremiumButton>
         </div>
 
         {/* Voice Lawyer */}
         <Link href="/voice-lawyer"
-          className="mx-4 mt-3 flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 rounded-xl hover:from-amber-100 hover:to-orange-100 transition-all group active:scale-[0.98]">
+          className="mx-4 mt-3 flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-amber-50 dark:from-amber-950/20 to-orange-50 dark:to-orange-950/20 border border-amber-200 dark:border-amber-800/50 rounded-xl hover:from-amber-100 dark:hover:from-amber-950/40 hover:to-orange-100 dark:hover:to-orange-950/40 transition-all group active:scale-[0.98]">
           <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-sm">
             <Phone className="w-4 h-4 text-white" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-900">🎙️ Voice Lawyer</p>
-            <p className="text-xs text-gray-500">Real-time Consultant</p>
+            <p className="text-sm font-semibold text-slate-900 dark:text-white">🎙️ Voice Lawyer</p>
+            <p className="text-xs text-slate-600 dark:text-slate-400">Real-time Consultant</p>
           </div>
-          <ChevronRight className="w-4 h-4 text-gray-400 ml-auto group-hover:translate-x-0.5 transition-transform" />
+          <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500 ml-auto group-hover:translate-x-0.5 transition-transform" />
         </Link>
 
         {/* Chat list */}
         <div className="flex-1 overflow-y-auto p-3 space-y-1">
           {sessions.length === 0 ? (
             <div className="text-center py-12">
-              <MessageSquare className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-              <p className="text-sm text-gray-400">No chats yet</p>
-              <p className="text-xs text-gray-400 mt-1">Start a conversation</p>
+              <MessageSquare className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+              <p className="text-sm text-slate-400 dark:text-slate-500">No chats yet</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Start a conversation</p>
             </div>
           ) : (
             <>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">Recent Chats</p>
+              <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-3 mb-2">Recent Chats</p>
               {sessions.map(s => (
                 <div key={s.id} onClick={() => selectSession(s)}
-                  className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all ${activeSession?.id === s.id ? 'bg-gray-900 text-white shadow-md' : 'hover:bg-gray-100 text-gray-700'
+                  className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all ${activeSession?.id === s.id ? 'bg-indigo-600 text-white shadow-md' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
                     }`}>
-                  <MessageSquare className={`w-4 h-4 flex-shrink-0 ${activeSession?.id === s.id ? 'text-white/60' : 'text-gray-400'}`} />
+                  <MessageSquare className={`w-4 h-4 flex-shrink-0 ${activeSession?.id === s.id ? 'text-white/60' : 'text-slate-400 dark:text-slate-500'}`} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm truncate font-medium">{s.title}</p>
                     <div className="flex items-center gap-1.5">
-                      <Clock className={`w-3 h-3 ${activeSession?.id === s.id ? 'text-white/40' : 'text-gray-400'}`} />
-                      <p className={`text-xs ${activeSession?.id === s.id ? 'text-white/50' : 'text-gray-400'}`}>{timeAgo(s.updatedAt)}</p>
+                      <Clock className={`w-3 h-3 ${activeSession?.id === s.id ? 'text-white/40' : 'text-slate-400 dark:text-slate-500'}`} />
+                      <p className={`text-xs ${activeSession?.id === s.id ? 'text-white/50' : 'text-slate-400 dark:text-slate-500'}`}>{timeAgo(s.updatedAt)}</p>
                     </div>
                   </div>
                   <button onClick={(e) => deleteSession(s.id, e)}
-                    className={`p-1 rounded-lg opacity-0 group-hover:opacity-100 transition-all ${activeSession?.id === s.id ? 'hover:bg-white/10 text-white/60' : 'hover:bg-red-100 text-gray-400 hover:text-red-500'
+                    className={`p-1 rounded-lg opacity-0 group-hover:opacity-100 transition-all ${activeSession?.id === s.id ? 'hover:bg-white/10 text-white/60' : 'hover:bg-rose-100 dark:hover:bg-rose-950/30 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400'
                       }`}>
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -464,24 +469,24 @@ export default function AIAssistantPage() {
             </>
           )}
         </div>
-        <div className="p-3 border-t border-gray-200"><p className="text-xs text-gray-400 text-center">© 2026 LAW.AI by RAGSPRO</p></div>
+        <div className="p-3 border-t border-slate-200 dark:border-slate-800"><p className="text-xs text-slate-400 dark:text-slate-500 text-center">© 2026 LAW.AI by RAGSPRO</p></div>
       </aside>
 
       {/* ====== MAIN CHAT ====== */}
-      <div className="flex-1 flex flex-col min-w-0 bg-white">
+      <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-slate-900">
         {/* Header */}
-        <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-10">
+        <header className="bg-white dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center justify-between sticky top-0 z-10">
           <div className="flex items-center gap-3">
-            <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 hover:bg-gray-100 rounded-lg">
-              <Menu className="w-5 h-5 text-gray-600" />
+            <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+              <Menu className="w-5 h-5 text-slate-600 dark:text-slate-400" />
             </button>
             <div className="flex items-center gap-2">
-              <div className="w-9 h-9 bg-gradient-to-br from-gray-900 to-gray-700 rounded-xl flex items-center justify-center shadow-sm">
+              <div className="w-9 h-9 bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-sm">
                 <Scale className="w-4 h-4 text-white" />
               </div>
               <div>
-                <h1 className="text-base font-bold text-gray-900">AI Legal Assistant</h1>
-                <p className="text-xs text-gray-500">Indian Law Expert • Powered by AI</p>
+                <h1 className="text-base font-bold text-slate-900 dark:text-white">AI Legal Assistant</h1>
+                <p className="text-xs text-slate-600 dark:text-slate-400">Indian Law Expert • Powered by AI</p>
               </div>
             </div>
           </div>
@@ -493,52 +498,58 @@ export default function AIAssistantPage() {
             </Link>
             {messages.length > 0 && (
               <>
-                <button onClick={downloadChat} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors" title="Download"><Download className="w-4 h-4" /></button>
-                <button onClick={shareChat} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors" title="Share"><Share2 className="w-4 h-4" /></button>
+                <PremiumButton onClick={downloadChat} variant="ghost" size="sm" icon={<Download className="w-4 h-4" />}>
+                  {' '}
+                </PremiumButton>
+                <PremiumButton onClick={shareChat} variant="ghost" size="sm" icon={<Share2 className="w-4 h-4" />}>
+                  {' '}
+                </PremiumButton>
               </>
             )}
-            <button onClick={newSession} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors" title="New Chat"><Plus className="w-4 h-4" /></button>
+            <PremiumButton onClick={newSession} variant="ghost" size="sm" icon={<Plus className="w-4 h-4" />}>
+              {' '}
+            </PremiumButton>
           </div>
         </header>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-50 to-white">
+        <div className="flex-1 overflow-y-auto bg-gradient-to-b from-slate-50 dark:from-slate-900 to-white dark:to-slate-900">
           {messages.length === 0 && !loading ? (
             /* ====== ANIMATED WELCOME STATE ====== */
             <div className="h-full flex flex-col items-center justify-center p-4 sm:p-8 animate-in fade-in duration-700">
-              <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-3xl flex items-center justify-center mb-6 shadow-inner animate-pulse">
+              <div className="w-20 h-20 bg-gradient-to-br from-slate-100 dark:from-slate-800 to-slate-200 dark:to-slate-700 rounded-3xl flex items-center justify-center mb-6 shadow-inner animate-pulse">
                 <Sparkles className="w-10 h-10 text-amber-500" />
               </div>
 
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3 text-center tracking-tight">
+              <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white mb-3 text-center tracking-tight">
                 Ask Any Legal Question
               </h2>
 
-              <p className="text-gray-500 text-base sm:text-lg text-center max-w-xl mb-10 leading-relaxed">
+              <p className="text-slate-600 dark:text-slate-400 text-base sm:text-lg text-center max-w-xl mb-10 leading-relaxed">
                 Expert answers on IPC, CrPC, Property, and Family Law.<br />
-                <span className="text-amber-600 font-medium">Capable of drafting legal notices instantly.</span>
+                <span className="text-amber-600 dark:text-amber-400 font-medium">Capable of drafting legal notices instantly.</span>
               </p>
 
               <div className="w-full max-w-4xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {categories.map((cat, idx) => (
-                  <div key={cat.title}
-                    className="bg-white border border-gray-200 rounded-2xl p-4 hover:shadow-lg hover:border-gray-300 transition-all duration-300 group cursor-default"
-                    style={{ animationDelay: `${idx * 100}ms` }}>
-                    <div className="flex items-center gap-2 mb-4">
+                  <div key={cat.title} style={{ animationDelay: `${idx * 100}ms` }}>
+                    <PremiumCard hoverable className="cursor-default h-full">
+                      <div className="flex items-center gap-2 mb-4">
                       <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${cat.color} flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform`}>
                         <cat.icon className="w-4 h-4 text-white" />
                       </div>
-                      <h3 className="text-sm font-bold text-gray-900">{cat.title}</h3>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">{cat.title}</h3>
                     </div>
                     <div className="space-y-2">
                       {cat.questions.map(q => (
                         <button key={q} onClick={() => { setInput(q); textareaRef.current?.focus() }}
-                          className="w-full text-left px-3 py-2 bg-gray-50 hover:bg-gray-100 text-gray-600 text-xs sm:text-sm rounded-lg transition-all flex items-center justify-between group/btn active:scale-[0.98]">
+                          className="w-full text-left px-3 py-2 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 text-xs sm:text-sm rounded-lg transition-all flex items-center justify-between group/btn active:scale-[0.98]">
                           <span className="truncate">{q}</span>
-                          <ChevronRight className="w-3 h-3 text-gray-300 group-hover/btn:text-gray-500 group-hover/btn:translate-x-0.5 transition-all opacity-0 group-hover/btn:opacity-100" />
+                          <ChevronRight className="w-3 h-3 text-slate-300 dark:text-slate-600 group-hover/btn:text-slate-500 dark:group-hover/btn:text-slate-400 group-hover/btn:translate-x-0.5 transition-all opacity-0 group-hover/btn:opacity-100" />
                         </button>
                       ))}
                     </div>
+                    </PremiumCard>
                   </div>
                 ))}
               </div>
@@ -549,60 +560,62 @@ export default function AIAssistantPage() {
               {messages.map(m => (
                 <div key={m.id} className={`flex gap-4 ${m.role === 'user' ? 'justify-end' : ''} animate-in fade-in slide-in-from-bottom-2 duration-500`}>
                   {m.role === 'assistant' && (
-                    <div className="w-9 h-9 bg-gradient-to-br from-gray-900 to-gray-700 rounded-xl flex items-center justify-center flex-shrink-0 mt-1 shadow-sm">
+                    <div className="w-9 h-9 bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-xl flex items-center justify-center flex-shrink-0 mt-1 shadow-sm">
                       <Scale className="w-4 h-4 text-white" />
                     </div>
                   )}
                   <div className={`max-w-[85%] ${m.role === 'user' ? '' : 'w-full'}`}>
                     {m.file && (
-                      <div className="flex items-center gap-2 mb-2 px-3 py-1.5 bg-gray-100 border border-gray-200 rounded-lg text-xs text-gray-600 w-fit">
+                      <div className="flex items-center gap-2 mb-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-600 dark:text-slate-400 w-fit">
                         <FileText className="w-3.5 h-3.5" /><span>{m.file.name}</span>
                       </div>
                     )}
                     <div className={`rounded-2xl overflow-hidden ${m.role === 'user'
-                      ? 'bg-gray-900 text-white px-5 py-3.5 rounded-br-md shadow-lg'
-                      : 'bg-white border border-gray-200 px-6 py-5 rounded-bl-md shadow-sm'
+                      ? 'bg-indigo-600 text-white px-5 py-3.5 rounded-br-md shadow-lg'
+                      : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-6 py-5 rounded-bl-md shadow-sm'
                       }`}>
                       {m.role === 'user' ? (
                         <p className="whitespace-pre-wrap text-sm leading-relaxed">{m.content}</p>
                       ) : (
-                        <div className="prose-legal text-sm leading-relaxed text-gray-800"
+                        <div className="prose-legal text-sm leading-relaxed text-slate-800 dark:text-slate-200"
                           dangerouslySetInnerHTML={{ __html: renderMarkdown(m.content) }} />
                       )}
                     </div>
 
                     {/* DRAFT PROMPT CARD - Only for AI messages with draft tag */}
                     {m.role === 'assistant' && (m.isDraft || m.content.includes('[OFFER_DRAFT]')) && (
-                      <div className="mt-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-4 flex items-center justify-between shadow-sm animate-in zoom-in duration-300">
+                      <div className="mt-3 bg-gradient-to-r from-blue-50 dark:from-blue-950/30 to-indigo-50 dark:to-indigo-950/30 border border-blue-100 dark:border-blue-800/50 rounded-xl p-4 flex items-center justify-between shadow-sm animate-in zoom-in duration-300">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm border border-blue-100">
-                            <FileEdit className="w-5 h-5 text-blue-600" />
+                          <div className="w-10 h-10 bg-white dark:bg-slate-800 rounded-lg flex items-center justify-center shadow-sm border border-blue-100 dark:border-blue-800">
+                            <FileEdit className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                           </div>
                           <div>
-                            <h4 className="text-sm font-bold text-gray-900">Draft Ready</h4>
-                            <p className="text-xs text-gray-500">I noticed you requested a legal draft.</p>
+                            <h4 className="text-sm font-bold text-slate-900 dark:text-white">Draft Ready</h4>
+                            <p className="text-xs text-slate-600 dark:text-slate-400">I noticed you requested a legal draft.</p>
                           </div>
                         </div>
-                        <button
+                        <PremiumButton
                           onClick={() => convertToDraft(m)}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center gap-2"
+                          variant="primary"
+                          size="sm"
+                          icon={<ChevronRight className="w-4 h-4" />}
                         >
-                          Open Editor <ChevronRight className="w-4 h-4" />
-                        </button>
+                          Open Editor
+                        </PremiumButton>
                       </div>
                     )}
 
                     <div className="flex items-center gap-2 mt-2 px-1">
-                      <span className="text-xs text-gray-400 font-medium">{fmtTime(m.timestamp)}</span>
+                      <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">{fmtTime(m.timestamp)}</span>
                       {m.role === 'assistant' && (
                         <div className="flex items-center gap-1 ml-auto">
-                          <button onClick={() => copyMsg(m)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title="Copy">
-                            {copiedId === m.id ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                          <button onClick={() => copyMsg(m)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-400 transition-colors" title="Copy">
+                            {copiedId === m.id ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
                           </button>
-                          <button onClick={() => convertToDraft(m)} className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors" title="Create Draft">
+                          <button onClick={() => convertToDraft(m)} className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" title="Create Draft">
                             <FileEdit className="w-3.5 h-3.5" />
                           </button>
-                          <button onClick={downloadChat} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title="Download">
+                          <button onClick={downloadChat} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-400 transition-colors" title="Download">
                             <Download className="w-3.5 h-3.5" />
                           </button>
                         </div>
@@ -610,8 +623,8 @@ export default function AIAssistantPage() {
                     </div>
                   </div>
                   {m.role === 'user' && (
-                    <div className="w-9 h-9 bg-gray-200 rounded-xl flex items-center justify-center flex-shrink-0 mt-1">
-                      <span className="text-xs font-bold text-gray-500">You</span>
+                    <div className="w-9 h-9 bg-slate-200 dark:bg-slate-700 rounded-xl flex items-center justify-center flex-shrink-0 mt-1">
+                      <span className="text-xs font-bold text-slate-600 dark:text-slate-300">You</span>
                     </div>
                   )}
                 </div>
@@ -671,23 +684,31 @@ export default function AIAssistantPage() {
           <div className="max-w-4xl mx-auto">
             <div className="flex items-end gap-2 bg-gray-50 p-2 rounded-2xl border border-gray-200 focus-within:border-gray-400 focus-within:ring-4 focus-within:ring-gray-100 transition-all">
               <input type="file" ref={fileInputRef} onChange={handleFile} accept=".pdf,.jpg,.jpeg,.png,.txt,.doc,.docx" className="hidden" />
-              <button onClick={() => fileInputRef.current?.click()}
-                className="p-3 rounded-xl hover:bg-gray-200 text-gray-500 transition-all flex-shrink-0 active:scale-95" title="Upload doc">
-                <Upload className="w-5 h-5" />
-              </button>
+              <PremiumButton onClick={() => fileInputRef.current?.click()}
+                variant="ghost"
+                size="md"
+                icon={<Upload className="w-5 h-5" />}
+                className="flex-shrink-0"
+              >
+                {' '}
+              </PremiumButton>
               <div className="flex-1 relative">
                 <textarea ref={textareaRef} value={input} onChange={handleInputChange}
                   onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
                   placeholder="Ask a legal question... (e.g. 'Draft a legal notice')" rows={1} disabled={loading}
-                  className="w-full px-2 py-3 bg-transparent border-0 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0 text-base resize-none"
+                  className="w-full px-2 py-3 bg-transparent border-0 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-0 text-base resize-none"
                   style={{ minHeight: '48px', maxHeight: '150px' }} />
               </div>
-              <button onClick={handleSend} disabled={loading || (!input.trim() && !uploadedFile)}
-                className="p-3 rounded-xl bg-gray-900 hover:bg-gray-800 text-white transition-all disabled:opacity-40 flex-shrink-0 shadow-md hover:shadow-lg active:scale-95">
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-              </button>
+              <PremiumButton onClick={handleSend} disabled={loading || (!input.trim() && !uploadedFile)}
+                variant="primary"
+                size="md"
+                icon={loading ? undefined : <Send className="w-5 h-5" />}
+                className="flex-shrink-0"
+              >
+                {loading ? 'Sending...' : ''}
+              </PremiumButton>
             </div>
-            <p className="text-xs text-gray-400 text-center mt-3 font-medium">AI responses are for reference only. Consult a qualified advocate.</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 text-center mt-3 font-medium">AI responses are for reference only. Consult a qualified advocate.</p>
           </div>
         </div>
       </div>

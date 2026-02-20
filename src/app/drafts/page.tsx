@@ -8,6 +8,7 @@ import { toast, Toaster } from 'react-hot-toast'
 import { FileText, Download, Sparkles, Copy, ArrowLeft, History, Trash2, Eye, Briefcase, Check, AlertTriangle, Save, Edit3, X } from 'lucide-react'
 import { BottomSheet } from '@/components/shared/BottomSheet'
 import { CaseRequiredPrompt, useCaseRequired } from '@/components/shared/CaseRequiredPrompt'
+import { PremiumButton, PremiumCard, StatCard } from '@/components/premium'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 
@@ -314,23 +315,23 @@ function DraftsContent() {
   const FormContent = () => (
     <div className="space-y-4">
       {activeCase && (
-        <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-xl text-sm">
-          <Briefcase className="h-4 w-4 text-gray-500" />
-          <span className="text-gray-600">Linked to: {activeCase.cnrNumber}</span>
+        <div className="flex items-center gap-2 px-3 py-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg text-sm border border-indigo-200 dark:border-indigo-800">
+          <Briefcase className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+          <span className="text-indigo-700 dark:text-indigo-300">Linked to: {activeCase.cnrNumber}</span>
         </div>
       )}
 
       <div className="grid grid-cols-1 gap-4">
         {(formFields[selectedType] || []).map((field) => (
           <div key={field.key}>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              {field.label} {field.required && <span className="text-red-500">*</span>}
+            <label className="block text-premium-body font-medium text-gray-900 dark:text-white mb-2">
+              {field.label} {field.required && <span className="text-rose-500">*</span>}
             </label>
             {field.key.includes('Address') || field.key.includes('Description') || field.key.includes('facts') || field.key.includes('statements') ? (
               <textarea
                 value={formData[field.key] || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, [field.key]: e.target.value }))}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent text-sm"
+                className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                 placeholder={`Enter ${field.label.toLowerCase()}`}
                 rows={3}
               />
@@ -339,7 +340,7 @@ function DraftsContent() {
                 type={field.type || 'text'}
                 value={formData[field.key] || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, [field.key]: e.target.value }))}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent text-sm"
+                className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                 placeholder={`Enter ${field.label.toLowerCase()}`}
               />
             )}
@@ -347,23 +348,16 @@ function DraftsContent() {
         ))}
       </div>
 
-      <button
+      <PremiumButton
+        variant="primary"
+        size="lg"
         onClick={handleGenerate}
         disabled={loading}
-        className="w-full py-3.5 bg-gray-900 hover:bg-gray-800 text-white font-medium rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+        icon={loading ? <Sparkles className="h-5 w-5 animate-spin" /> : <FileText className="h-5 w-5" />}
+        className="w-full"
       >
-        {loading ? (
-          <>
-            <Sparkles className="h-5 w-5 animate-spin" />
-            Generating...
-          </>
-        ) : (
-          <>
-            <FileText className="h-5 w-5" />
-            Generate Document
-          </>
-        )}
-      </button>
+        {loading ? 'Generating...' : 'Generate Document'}
+      </PremiumButton>
     </div>
   )
 
@@ -390,128 +384,167 @@ function DraftsContent() {
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Document Generator</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            {activeCase ? `Creating for: ${activeCase.cnrNumber}` : 'Create, Edit & Export Legal Documents'}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {!isPro && getRemainingMessage('draft') && (
-            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
-              <AlertTriangle className="h-3.5 w-3.5" />
-              <span>{usage.draftsThisMonth}/{limits.draftsPerMonth} this month</span>
-            </div>
-          )}
-          <button onClick={() => setShowHistory(!showHistory)} className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm text-gray-700">
-            <History className="h-4 w-4" />
-            <span className="hidden sm:inline">History</span>
-          </button>
-          {(step > 1 || viewingDraft) && (
-            <button onClick={reset} className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2">Start Over</button>
-          )}
+      <div className="mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-premium-h1 text-gray-900 dark:text-white">Document Generator</h1>
+            <p className="text-premium-body text-gray-600 dark:text-gray-400 mt-2">
+              {activeCase ? `Creating for: ${activeCase.cnrNumber}` : 'Create, Edit & Export Legal Documents'}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {!isPro && getRemainingMessage('draft') && (
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-xs text-amber-700 dark:text-amber-400">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                <span>{usage.draftsThisMonth}/{limits.draftsPerMonth} this month</span>
+              </div>
+            )}
+            <PremiumButton
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowHistory(!showHistory)}
+              icon={<History className="h-4 w-4" />}
+            >
+              <span className="hidden sm:inline">History</span>
+            </PremiumButton>
+            {(step > 1 || viewingDraft) && (
+              <PremiumButton
+                variant="ghost"
+                size="sm"
+                onClick={reset}
+              >
+                Start Over
+              </PremiumButton>
+            )}
+          </div>
         </div>
       </div>
 
       {/* History Sidebar */}
       {showHistory && (
-        <div className="mb-6 p-4 bg-gray-50 rounded-2xl border border-gray-200">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-medium text-gray-900">Recent Documents</h3>
+        <PremiumCard className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-premium-h3 text-gray-900 dark:text-white">Recent Documents</h3>
             {activeCase && (
-              <button onClick={() => setFilterByCase(!filterByCase)} className={`text-xs px-2 py-1 rounded-lg transition-colors ${filterByCase ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-600'}`}>
+              <PremiumButton
+                variant={filterByCase ? 'primary' : 'secondary'}
+                size="sm"
+                onClick={() => setFilterByCase(!filterByCase)}
+              >
                 This Case Only
-              </button>
+              </PremiumButton>
             )}
           </div>
           {savedDrafts.length > 0 ? (
             <div className="space-y-2 max-h-60 overflow-y-auto">
               {savedDrafts.map((draft) => (
-                <div key={draft.id} className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-200 hover:border-gray-300 cursor-pointer" onClick={() => viewDraft(draft)}>
+                <div key={draft.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600 cursor-pointer transition-colors" onClick={() => viewDraft(draft)}>
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-gray-900 text-sm truncate">{draft.title}</p>
+                    <p className="text-premium-body font-medium text-gray-900 dark:text-white truncate">{draft.title}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <p className="text-xs text-gray-500">{new Date(draft.createdAt).toLocaleDateString()}</p>
-                      {draft.caseId && <Briefcase className="h-3 w-3 text-gray-400" />}
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{new Date(draft.createdAt).toLocaleDateString()}</p>
+                      {draft.caseId && <Briefcase className="h-3 w-3 text-gray-400 dark:text-gray-500" />}
                     </div>
                   </div>
-                  <Eye className="h-4 w-4 text-gray-400 flex-shrink-0 ml-2" />
+                  <Eye className="h-4 w-4 text-gray-400 dark:text-gray-500 flex-shrink-0 ml-2" />
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-500">No saved documents yet</p>
+            <p className="text-premium-body text-gray-500 dark:text-gray-400">No saved documents yet</p>
           )}
-        </div>
+        </PremiumCard>
       )}
 
       {/* EDITOR / VIEWER */}
       {viewingDraft && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">{viewingDraft.title}</h2>
-              <div className="flex items-center gap-2 mt-1">
-                <p className="text-sm text-gray-500">
-                  {isEditing ? 'Editing Mode' : `Created: ${new Date(viewingDraft.createdAt).toLocaleDateString()}`}
-                </p>
+          <PremiumCard>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-premium-h2 text-gray-900 dark:text-white">{viewingDraft.title}</h2>
+                <div className="flex items-center gap-2 mt-2">
+                  <p className="text-premium-body text-gray-600 dark:text-gray-400">
+                    {isEditing ? 'Editing Mode' : `Created: ${new Date(viewingDraft.createdAt).toLocaleDateString()}`}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                {isEditing ? (
+                  <PremiumButton
+                    variant="primary"
+                    size="sm"
+                    onClick={handleSaveEdit}
+                    disabled={isSaving}
+                    icon={<Save className="h-4 w-4" />}
+                  >
+                    Save Changes
+                  </PremiumButton>
+                ) : (
+                  <PremiumButton
+                    variant="primary"
+                    size="sm"
+                    onClick={() => { setIsEditing(true); setEditContent(viewingDraft.content) }}
+                    icon={<Edit3 className="h-4 w-4" />}
+                  >
+                    Edit Document
+                  </PremiumButton>
+                )}
+                <PremiumButton
+                  variant="secondary"
+                  size="sm"
+                  onClick={copyToClipboard}
+                  icon={<Copy className="h-4 w-4" />}
+                />
+                <PremiumButton
+                  variant="secondary"
+                  size="sm"
+                  onClick={downloadPDF}
+                  icon={<Download className="h-4 w-4" />}
+                />
               </div>
             </div>
-            <div className="flex gap-2">
-              {isEditing ? (
-                <button onClick={handleSaveEdit} disabled={isSaving} className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-xl shadow-sm flex items-center gap-2">
-                  {isSaving ? <Sparkles className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  Save Changes
-                </button>
-              ) : (
-                <button onClick={() => { setIsEditing(true); setEditContent(viewingDraft.content) }} className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium rounded-xl shadow-sm flex items-center gap-2">
-                  <Edit3 className="h-4 w-4" />
-                  Edit Document
-                </button>
-              )}
-              <button onClick={copyToClipboard} className="p-2 rounded-xl border border-gray-200 hover:bg-gray-50"><Copy className="h-5 w-5 text-gray-600" /></button>
-              <button onClick={downloadPDF} className="p-2 rounded-xl border border-gray-200 hover:bg-gray-50"><Download className="h-5 w-5 text-gray-600" /></button>
-            </div>
-          </div>
+          </PremiumCard>
 
-          <div className="bg-white border border-gray-200 rounded-2xl p-1 shadow-sm">
+          <PremiumCard className="p-0 overflow-hidden">
             {isEditing ? (
               <textarea
                 value={editContent}
                 onChange={e => setEditContent(e.target.value)}
-                className="w-full h-[60vh] p-4 sm:p-6 text-sm sm:text-base text-gray-800 font-serif leading-relaxed focus:outline-none resize-none rounded-xl"
+                className="w-full h-[60vh] p-6 text-sm text-gray-800 dark:text-gray-200 font-serif leading-relaxed focus:outline-none resize-none bg-white dark:bg-gray-900"
               />
             ) : (
-              <div className="w-full h-[60vh] p-4 sm:p-6 text-sm sm:text-base text-gray-800 font-serif leading-relaxed overflow-y-auto whitespace-pre-wrap">
+              <div className="w-full h-[60vh] p-6 text-sm text-gray-800 dark:text-gray-200 font-serif leading-relaxed overflow-y-auto whitespace-pre-wrap bg-white dark:bg-gray-900">
                 {viewingDraft.content}
               </div>
             )}
-          </div>
+          </PremiumCard>
         </div>
       )}
 
       {/* Main Creation Flow */}
       {!viewingDraft && (
         <>
-          <div className="flex items-center gap-2 mb-6">
+          <div className="flex items-center gap-2 mb-8">
             {[1, 2, 3].map((s) => (
-              <div key={s} className={`h-2 flex-1 rounded-full transition-colors ${step >= s ? 'bg-gray-900' : 'bg-gray-200'}`} />
+              <div key={s} className={`h-1.5 flex-1 rounded-full transition-colors ${step >= s ? 'bg-indigo-500' : 'bg-gray-200 dark:bg-gray-700'}`} />
             ))}
           </div>
 
           {step === 1 && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-gray-900">Select Document Type</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-                {draftTypes.map((type) => (
-                  <button key={type.value} onClick={() => selectTypeAndProceed(type.value)}
-                    className={`p-4 sm:p-5 text-left rounded-2xl border-2 transition-all hover:border-gray-300 hover:shadow-sm ${selectedType === type.value ? 'border-gray-900 bg-gray-50' : 'border-gray-200 bg-white'}`}>
-                    <span className="text-2xl mb-2 block">{type.icon}</span>
-                    <h3 className="font-semibold text-gray-900 text-sm sm:text-base">{type.label}</h3>
-                    <p className="text-xs sm:text-sm text-gray-500 mt-1 hidden sm:block">{type.desc}</p>
-                  </button>
-                ))}
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-premium-h2 text-gray-900 dark:text-white mb-4">Select Document Type</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {draftTypes.map((type) => (
+                    <button key={type.value} onClick={() => selectTypeAndProceed(type.value)}
+                      className={`p-4 text-left rounded-xl border-2 transition-all ${selectedType === type.value ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600'}`}>
+                      <span className="text-2xl mb-2 block">{type.icon}</span>
+                      <h3 className="font-semibold text-gray-900 dark:text-white text-sm">{type.label}</h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 hidden sm:block">{type.desc}</p>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           )}
@@ -519,52 +552,90 @@ function DraftsContent() {
           {step === 2 && selectedType && (
             <div className="space-y-6">
               <div className="flex items-center gap-3">
-                <button onClick={() => setStep(1)} className="p-2 rounded-xl hover:bg-gray-100"><ArrowLeft className="h-5 w-5 text-gray-500" /></button>
+                <PremiumButton
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setStep(1)}
+                  icon={<ArrowLeft className="h-4 w-4" />}
+                />
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">{draftTypes.find(t => t.value === selectedType)?.label}</h2>
-                  <p className="text-sm text-gray-500">Fill in the details</p>
+                  <h2 className="text-premium-h2 text-gray-900 dark:text-white">{draftTypes.find(t => t.value === selectedType)?.label}</h2>
+                  <p className="text-premium-body text-gray-600 dark:text-gray-400 mt-1">Fill in the details</p>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {(formFields[selectedType] || []).map((field) => (
-                  <div key={field.key} className={field.key.includes('Address') || field.key.includes('Description') || field.key.includes('facts') || field.key.includes('statements') ? 'sm:col-span-2' : ''}>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      {field.label} {field.required && <span className="text-red-500">*</span>}
-                    </label>
-                    {field.key.includes('Address') || field.key.includes('Description') || field.key.includes('facts') || field.key.includes('statements') ? (
-                      <textarea value={formData[field.key] || ''} onChange={(e) => setFormData(prev => ({ ...prev, [field.key]: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent text-sm" placeholder={`Enter ${field.label.toLowerCase()}`} rows={3} />
-                    ) : (
-                      <input type={field.type || 'text'} value={formData[field.key] || ''} onChange={(e) => setFormData(prev => ({ ...prev, [field.key]: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent text-sm" placeholder={`Enter ${field.label.toLowerCase()}`} />
-                    )}
-                  </div>
-                ))}
-              </div>
-              <button onClick={handleGenerate} disabled={loading} className="w-full py-3.5 bg-gray-900 hover:bg-gray-800 text-white font-medium rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-                {loading ? <><Sparkles className="h-5 w-5 animate-spin" /> Generating...</> : <><FileText className="h-5 w-5" /> Generate Document</>}
-              </button>
+              <PremiumCard>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {(formFields[selectedType] || []).map((field) => (
+                    <div key={field.key} className={field.key.includes('Address') || field.key.includes('Description') || field.key.includes('facts') || field.key.includes('statements') ? 'sm:col-span-2' : ''}>
+                      <label className="block text-premium-body font-medium text-gray-900 dark:text-white mb-2">
+                        {field.label} {field.required && <span className="text-rose-500">*</span>}
+                      </label>
+                      {field.key.includes('Address') || field.key.includes('Description') || field.key.includes('facts') || field.key.includes('statements') ? (
+                        <textarea value={formData[field.key] || ''} onChange={(e) => setFormData(prev => ({ ...prev, [field.key]: e.target.value }))}
+                          className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white" placeholder={`Enter ${field.label.toLowerCase()}`} rows={3} />
+                      ) : (
+                        <input type={field.type || 'text'} value={formData[field.key] || ''} onChange={(e) => setFormData(prev => ({ ...prev, [field.key]: e.target.value }))}
+                          className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white" placeholder={`Enter ${field.label.toLowerCase()}`} />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </PremiumCard>
+              <PremiumButton
+                variant="primary"
+                size="lg"
+                onClick={handleGenerate}
+                disabled={loading}
+                icon={loading ? <Sparkles className="h-5 w-5 animate-spin" /> : <FileText className="h-5 w-5" />}
+                className="w-full"
+              >
+                {loading ? 'Generating...' : 'Generate Document'}
+              </PremiumButton>
             </div>
           )}
 
           {step === 3 && generatedDraft && (
             <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-semibold text-gray-900">Generated Document</h2>
-                  <Check className="h-5 w-5 text-green-600" />
+              <PremiumCard>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-premium-h2 text-gray-900 dark:text-white">Generated Document</h2>
+                    <Check className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <div className="flex gap-2">
+                    <PremiumButton
+                      variant="secondary"
+                      size="sm"
+                      onClick={copyToClipboard}
+                      icon={<Copy className="h-4 w-4" />}
+                    >
+                      <span className="sm:hidden">Copy</span>
+                    </PremiumButton>
+                    <PremiumButton
+                      variant="secondary"
+                      size="sm"
+                      onClick={downloadPDF}
+                      icon={<Download className="h-4 w-4" />}
+                    >
+                      <span className="sm:hidden">Download</span>
+                    </PremiumButton>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <button onClick={copyToClipboard} className="flex-1 sm:flex-none p-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 flex items-center justify-center gap-2"><Copy className="h-5 w-5 text-gray-600" /><span className="sm:hidden text-sm">Copy</span></button>
-                  <button onClick={downloadPDF} className="flex-1 sm:flex-none p-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 flex items-center justify-center gap-2"><Download className="h-5 w-5 text-gray-600" /><span className="sm:hidden text-sm">Download</span></button>
+              </PremiumCard>
+              <PremiumCard className="p-0 overflow-hidden">
+                <div className="w-full h-[50vh] p-6 text-sm text-gray-800 dark:text-gray-200 font-mono leading-relaxed overflow-y-auto whitespace-pre-wrap bg-white dark:bg-gray-900">
+                  {generatedDraft}
                 </div>
-              </div>
-              <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 sm:p-6 max-h-[50vh] overflow-y-auto">
-                <pre className="whitespace-pre-wrap text-sm text-gray-800 font-mono leading-relaxed">{generatedDraft}</pre>
-              </div>
-              <button onClick={reset} className="w-full py-3.5 bg-gray-900 hover:bg-gray-800 text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2">
-                <FileText className="h-5 w-5" /> Create Another Document
-              </button>
+              </PremiumCard>
+              <PremiumButton
+                variant="primary"
+                size="lg"
+                onClick={reset}
+                icon={<FileText className="h-5 w-5" />}
+                className="w-full"
+              >
+                Create Another Document
+              </PremiumButton>
             </div>
           )}
         </>
