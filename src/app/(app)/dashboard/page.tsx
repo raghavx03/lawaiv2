@@ -218,14 +218,14 @@ export default function DashboardPage() {
 
       {/* Resume Last Case Prompt */}
       {showResumePrompt && lastCase && (
-        <PremiumCard className="border-indigo-200 dark:border-indigo-900 bg-indigo-50 dark:bg-indigo-950/30">
+        <PremiumCard className="border-purple-300 dark:border-purple-700 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/40 dark:to-pink-950/40 shadow-lg shadow-purple-200/50 dark:shadow-purple-900/30">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/50 rounded-lg flex items-center justify-center">
-                <Briefcase className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-200 to-pink-200 dark:from-purple-800 dark:to-pink-800 rounded-lg flex items-center justify-center">
+                <Briefcase className="h-6 w-6 text-purple-700 dark:text-purple-300" />
               </div>
               <div>
-                <p className="text-sm text-indigo-600 dark:text-indigo-400 font-medium">Continue where you left off?</p>
+                <p className="text-sm text-purple-700 dark:text-purple-300 font-medium">Continue where you left off?</p>
                 <p className="font-semibold text-slate-900 dark:text-white mt-1">{lastCase.cnrNumber}</p>
                 {lastCase.petitioner && (
                   <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{lastCase.petitioner} vs {lastCase.respondent}</p>
@@ -241,9 +241,9 @@ export default function DashboardPage() {
               </PremiumButton>
               <button
                 onClick={handleDismissResume}
-                className="p-2 hover:bg-indigo-200 dark:hover:bg-indigo-900/50 rounded-lg transition-colors"
+                className="p-2 hover:bg-purple-200 dark:hover:bg-purple-900/50 rounded-lg transition-colors"
               >
-                <X className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                <X className="h-5 w-5 text-purple-600 dark:text-purple-400" />
               </button>
             </div>
           </div>
@@ -272,25 +272,25 @@ export default function DashboardPage() {
 
       {/* Active Case Banner */}
       {activeCase && (
-        <PremiumCard className="bg-gradient-to-r from-indigo-600 to-indigo-700 dark:from-indigo-900 dark:to-indigo-800 border-0 text-white">
+        <PremiumCard className="bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 dark:from-cyan-700 dark:via-blue-700 dark:to-purple-800 border-0 text-white shadow-xl shadow-blue-500/30 dark:shadow-blue-900/30">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-white/30 backdrop-blur-sm rounded-lg flex items-center justify-center">
                 <Briefcase className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm text-white/70">Active Case</p>
+                <p className="text-sm text-white/80">Active Case</p>
                 <p className="font-semibold text-lg">{activeCase.cnrNumber}</p>
               </div>
             </div>
             <div className="flex items-center gap-4 text-sm">
               {activeCase.nextHearing && (
                 <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-white/70" />
+                  <Calendar className="h-4 w-4 text-white/80" />
                   <span>Next: {activeCase.nextHearing}</span>
                 </div>
               )}
-              <span className="px-3 py-1 bg-white/20 rounded-full text-xs font-medium">
+              <span className="px-3 py-1 bg-white/30 backdrop-blur-sm rounded-full text-xs font-medium">
                 {activeCase.status || 'Pending'}
               </span>
             </div>
@@ -319,8 +319,8 @@ export default function DashboardPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {quickActions.map((action) => {
             const content = (
-              <PremiumCard hoverable className="flex flex-col h-full min-h-[140px] cursor-pointer group">
-                <div className="w-11 h-11 bg-indigo-100 dark:bg-indigo-900/50 group-hover:bg-indigo-600 dark:group-hover:bg-indigo-600 text-indigo-600 dark:text-indigo-400 group-hover:text-white rounded-lg flex items-center justify-center mb-3 transition-colors flex-shrink-0">
+              <PremiumCard hoverable className="flex flex-col h-full min-h-[140px] cursor-pointer group bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 shadow-lg hover:shadow-xl transition-all">
+                <div className="w-11 h-11 bg-gradient-to-br from-indigo-200 to-purple-200 dark:from-indigo-800 dark:to-purple-800 group-hover:from-indigo-500 group-hover:to-purple-500 text-indigo-700 dark:text-indigo-300 group-hover:text-white rounded-lg flex items-center justify-center mb-3 transition-all flex-shrink-0 shadow-md">
                   <action.icon className="h-5 w-5" />
                 </div>
                 <div className="flex-1 flex flex-col">
@@ -328,8 +328,8 @@ export default function DashboardPage() {
                   <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-tight">{action.desc}</p>
                 </div>
                 {action.badge && (
-                  <div className="mt-auto pt-2 flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400">
-                    <Sparkles className="h-3 w-3" />
+                  <div className="mt-auto pt-2 flex items-center gap-1 text-xs font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400">
+                    <Sparkles className="h-3 w-3 text-purple-600 dark:text-purple-400" />
                     <span>{action.badge}</span>
                   </div>
                 )}
@@ -374,9 +374,9 @@ export default function DashboardPage() {
       >
         <div className="p-5 space-y-4">
           {activeCase && (
-            <div className="flex items-center gap-2 px-3 py-2 bg-indigo-50 dark:bg-indigo-950/30 rounded-lg text-sm border border-indigo-200 dark:border-indigo-800">
-              <Briefcase className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-              <span className="text-indigo-700 dark:text-indigo-300">Linked to: {activeCase.cnrNumber}</span>
+            <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-950/40 dark:to-blue-950/40 rounded-lg text-sm border border-cyan-200 dark:border-cyan-800">
+              <Briefcase className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+              <span className="text-cyan-700 dark:text-cyan-300">Linked to: {activeCase.cnrNumber}</span>
             </div>
           )}
 
@@ -386,7 +386,7 @@ export default function DashboardPage() {
               value={aiInput}
               onChange={(e) => setAiInput(e.target.value)}
               placeholder="e.g., What are the grounds for bail under Section 437 CrPC?"
-              className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 text-sm resize-none"
+              className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:focus:ring-cyan-400 text-sm resize-none"
               rows={4}
             />
           </div>
@@ -402,7 +402,7 @@ export default function DashboardPage() {
           </PremiumButton>
 
           {aiResponse && (
-            <PremiumCard className="bg-slate-50 dark:bg-slate-800/50">
+            <PremiumCard className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-700/50 border border-slate-200 dark:border-slate-700">
               <p className="text-sm text-slate-800 dark:text-slate-200 whitespace-pre-wrap">{aiResponse}</p>
             </PremiumCard>
           )}
@@ -414,7 +414,7 @@ export default function DashboardPage() {
                 <button
                   key={q}
                   onClick={() => setAiInput(q)}
-                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 text-xs rounded-lg transition-colors"
+                  className="px-3 py-1.5 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/40 dark:to-pink-900/40 hover:from-purple-200 hover:to-pink-200 dark:hover:from-purple-900/60 dark:hover:to-pink-900/60 text-purple-700 dark:text-purple-300 text-xs rounded-lg transition-all font-medium"
                 >
                   {q}
                 </button>
@@ -432,9 +432,9 @@ export default function DashboardPage() {
       >
         <div className="space-y-4">
           {activeCase && (
-            <div className="flex items-center gap-2 px-3 py-2 bg-indigo-50 dark:bg-indigo-950/30 rounded-lg text-sm border border-indigo-200 dark:border-indigo-800">
-              <Briefcase className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-              <span className="text-indigo-700 dark:text-indigo-300">Will be linked to: {activeCase.cnrNumber}</span>
+            <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950/40 dark:to-red-950/40 rounded-lg text-sm border border-orange-200 dark:border-orange-800">
+              <Briefcase className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+              <span className="text-orange-700 dark:text-orange-300">Will be linked to: {activeCase.cnrNumber}</span>
             </div>
           )}
 
