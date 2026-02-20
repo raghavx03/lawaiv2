@@ -84,7 +84,8 @@ export const Sidebar = memo(function Sidebar({ isOpen: mobileOpen = false, onClo
 
       {/* Sidebar */}
       <div className={`
-        fixed inset-y-0 left-0 z-50 lg:relative lg:inset-auto bg-gradient-to-b from-slate-900 to-slate-800 dark:from-slate-950 dark:to-slate-900 border-r border-slate-700 dark:border-slate-800 transform transition-all duration-300 ease-out flex flex-col
+        bg-gradient-to-b from-slate-900 to-slate-800 dark:from-slate-950 dark:to-slate-900 border-r border-slate-700 dark:border-slate-800 transform transition-all duration-300 ease-out flex flex-col
+        fixed inset-y-0 left-0 z-50 lg:static lg:z-auto
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0
         shadow-2xl lg:shadow-lg
