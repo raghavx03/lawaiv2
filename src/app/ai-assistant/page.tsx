@@ -59,11 +59,6 @@ function renderMarkdown(text: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
 
-  // Headers
-  html = html.replace(/^### (.+)$/gm, '<h3 class="text-base font-bold text-gray-900 mt-4 mb-2 flex items-center gap-2"><span class="w-1 h-5 bg-amber-500 rounded-full inline-block"></span>$1</h3>')
-  html = html.replace(/^## (.+)$/gm, '<h2 class="text-lg font-bold text-gray-900 mt-5 mb-2 border-b border-gray-200 pb-2">$1</h2>')
-  html = html.replace(/^# (.+)$/gm, '<h1 class="text-xl font-bold text-gray-900 mt-5 mb-3">$1</h1>')
-
   // Bold & Italic
   html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong class="font-bold"><em>$1</em></strong>')
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-gray-900">$1</strong>')
@@ -93,8 +88,6 @@ function renderMarkdown(text: string): string {
 
   // Cleanup
   html = html.replace(/<p class="mb-3"><\/p>/g, '')
-  html = html.replace(/<p class="mb-3">(<h[123])/g, '$1')
-  html = html.replace(/(<\/h[123]>)<\/p>/g, '$1')
   html = html.replace(/<p class="mb-3">(<hr)/g, '$1')
   html = html.replace(/(\/>\s*)<\/p>/g, '$1')
   html = html.replace(/<p class="mb-3">(<div)/g, '$1')

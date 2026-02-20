@@ -136,8 +136,7 @@ export default function DashboardPage() {
       icon: MessageSquare,
       desc: 'Indian Law Expert',
       badge: 'AI Powered',
-      action: () => setShowAIDrawer(true),
-      highlight: true
+      action: () => setShowAIDrawer(true)
     },
     {
       name: 'Upload Document',
@@ -290,12 +289,8 @@ export default function DashboardPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-3 sm:gap-4">
           {quickActions.map((action) => {
             const content = (
-              <div className={`group bg-white dark:bg-gray-800 border rounded-2xl p-4 sm:p-5 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md transition-all cursor-pointer flex flex-col h-full min-h-[140px] ${action.highlight ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-900/50' : 'border-gray-200 dark:border-gray-700'
-                }`}>
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-3 transition-colors flex-shrink-0 ${action.highlight
-                    ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                    : 'bg-gray-100 dark:bg-gray-700 group-hover:bg-gray-900 dark:group-hover:bg-white text-gray-600 dark:text-gray-300 group-hover:text-white dark:group-hover:text-gray-900'
-                  }`}>
+              <div className="group bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 sm:p-5 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md transition-all cursor-pointer flex flex-col h-full min-h-[140px]">
+                <div className="w-11 h-11 bg-gray-100 dark:bg-gray-700 group-hover:bg-gray-900 dark:group-hover:bg-white text-gray-600 dark:text-gray-300 group-hover:text-white dark:group-hover:text-gray-900 rounded-xl flex items-center justify-center mb-3 transition-colors flex-shrink-0">
                   <action.icon className="h-5 w-5" />
                 </div>
                 <div className="flex-1 flex flex-col">
