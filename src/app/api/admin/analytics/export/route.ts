@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { exportData, getExportFilename } from '@/lib/export-service'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const format = request.nextUrl.searchParams.get('format') as 'csv' | 'pdf' || 'csv'

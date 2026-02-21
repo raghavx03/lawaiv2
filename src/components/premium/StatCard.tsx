@@ -33,46 +33,56 @@ export function StatCard({
   loading = false,
 }: StatCardProps) {
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-6 shadow-sm hover:shadow-md transition-all duration-200 hover:border-slate-300 dark:hover:border-slate-700">
-      {/* Icon */}
-      {icon && (
-        <div className={`w-12 h-12 ${colorClasses[color]} rounded-lg flex items-center justify-center mb-4`}>
-          {icon}
-        </div>
-      )}
+    <div className="relative overflow-hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 rounded-xl p-6 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 ease-out hover:shadow-slate-200/40 dark:hover:shadow-slate-900/40 hover:border-slate-300/80 dark:hover:border-slate-700/80 flex flex-col group">
+      {/* Subtle highlight gradient */}
+      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/50 dark:via-white/10 to-transparent pointer-events-none" />
 
-      {/* Label */}
-      <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">
-        {label}
-      </p>
+      {/* Header/Label area */}
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+            {label}
+          </p>
+        </div>
+        {icon && (
+          <div className={`w-10 h-10 ${colorClasses[color]} rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110 shadow-sm`}>
+            {icon}
+          </div>
+        )}
+      </div>
 
       {/* Value */}
-      <div className="flex items-baseline gap-2 mb-3">
-        <p className="text-3xl font-bold text-slate-900 dark:text-white">
-          {loading ? '...' : value}
-        </p>
+      <div className="flex items-baseline gap-2 mb-3 mt-auto">
+        {loading ? (
+          <div className="h-8 w-24 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+        ) : (
+          <p className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+            {value}
+          </p>
+        )}
       </div>
 
       {/* Trend */}
       {trend && !loading && (
-        <div className="flex items-center gap-1">
-          {trend.isPositive ? (
-            <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-          ) : (
-            <TrendingDown className="w-4 h-4 text-rose-600 dark:text-rose-400" />
-          )}
+        <div className="flex items-center gap-1.5 mt-1">
+          <div className={`flex items-center justify-center p-0.5 rounded-full ${trend.isPositive ? 'bg-emerald-100 dark:bg-emerald-500/20' : 'bg-rose-100 dark:bg-rose-500/20'}`}>
+            {trend.isPositive ? (
+              <TrendingUp className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            ) : (
+              <TrendingDown className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+            )}
+          </div>
           <span
-            className={`text-sm font-medium ${
-              trend.isPositive
+            className={`text-sm font-semibold ${trend.isPositive
                 ? 'text-emerald-600 dark:text-emerald-400'
                 : 'text-rose-600 dark:text-rose-400'
-            }`}
+              }`}
           >
             {trend.isPositive ? '+' : '-'}
             {Math.abs(trend.value)}%
           </span>
           {trend.label && (
-            <span className="text-xs text-slate-500 dark:text-slate-400 ml-1">
+            <span className="text-xs text-slate-500 dark:text-slate-500 font-medium">
               {trend.label}
             </span>
           )}

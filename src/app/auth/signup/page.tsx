@@ -141,7 +141,7 @@ function SignupForm() {
                 placeholder="Enter your full name"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="pl-10 bg-black/20 border-white/10 text-white placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500/20"
+                className="pl-10 bg-black/40 border-white/20 text-white placeholder:text-gray-400 focus:border-white focus:ring-white/20"
                 required
               />
             </div>
@@ -159,7 +159,7 @@ function SignupForm() {
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="pl-10 bg-black/20 border-white/10 text-white placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500/20"
+                className="pl-10 bg-black/40 border-white/20 text-white placeholder:text-gray-400 focus:border-white focus:ring-white/20"
                 required
               />
             </div>
@@ -177,7 +177,7 @@ function SignupForm() {
                 placeholder="Create a password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="pl-10 pr-10 bg-black/20 border-white/10 text-white placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500/20"
+                className="pl-10 pr-10 bg-black/40 border-white/20 text-white placeholder:text-gray-400 focus:border-white focus:ring-white/20"
                 required
               />
               <button
@@ -202,13 +202,13 @@ function SignupForm() {
                 placeholder="Confirm your password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="pl-10 bg-black/20 border-white/10 text-white placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500/20"
+                className="pl-10 bg-black/40 border-white/20 text-white placeholder:text-gray-400 focus:border-white focus:ring-white/20"
                 required
               />
             </div>
           </div>
 
-          <Button type="submit" className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white border-0 py-5" disabled={loading}>
+          <Button type="submit" className="w-full bg-black hover:bg-white text-white hover:text-black border border-transparent hover:border-black transition-all duration-300 py-5" disabled={loading}>
             {loading ? 'Creating account...' : 'Create Account'}
           </Button>
         </form>
@@ -241,7 +241,7 @@ function SignupForm() {
         <div className="text-center pt-2">
           <p className="text-sm text-gray-400">
             Already have an account?{' '}
-            <Link href="/auth/login" className="text-blue-400 hover:text-blue-300 hover:underline transition-colors font-medium">
+            <Link href="/auth/login" className="text-white hover:text-gray-300 hover:underline transition-colors font-medium">
               Sign in
             </Link>
           </p>

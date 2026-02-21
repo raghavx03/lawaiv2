@@ -124,7 +124,7 @@ function LoginForm() {
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="pl-10 bg-black/20 border-white/10 text-white placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500/20"
+                className="pl-10 bg-black/40 border-white/20 text-white placeholder:text-gray-400 focus:border-white focus:ring-white/20"
                 required
               />
             </div>
@@ -142,7 +142,7 @@ function LoginForm() {
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="pl-10 pr-10 bg-black/20 border-white/10 text-white placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500/20"
+                className="pl-10 pr-10 bg-black/40 border-white/20 text-white placeholder:text-gray-400 focus:border-white focus:ring-white/20"
                 required
               />
               <button
@@ -156,7 +156,7 @@ function LoginForm() {
             </div>
           </div>
 
-          <Button type="submit" className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white border-0 py-5" disabled={loading}>
+          <Button type="submit" className="w-full bg-black hover:bg-white text-white hover:text-black border border-transparent hover:border-black transition-all duration-300 py-5" disabled={loading}>
             {loading ? 'Signing in...' : 'Sign In'}
           </Button>
         </form>
@@ -187,12 +187,12 @@ function LoginForm() {
         </Button>
 
         <div className="text-center space-y-3 pt-2">
-          <Link href="/auth/forgot-password" className="text-sm text-blue-400 hover:text-blue-300 hover:underline transition-colors block">
+          <Link href="/auth/forgot-password" className="text-sm text-gray-300 hover:text-white hover:underline transition-colors block">
             Forgot your password?
           </Link>
           <p className="text-sm text-gray-400">
             Don't have an account?{' '}
-            <Link href="/auth/signup" className="text-blue-400 hover:text-blue-300 hover:underline transition-colors font-medium">
+            <Link href="/auth/signup" className="text-white hover:text-gray-300 hover:underline transition-colors font-medium">
               Sign up
             </Link>
           </p>

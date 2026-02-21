@@ -44,15 +44,15 @@ export interface AIResponse {
 export function detectLanguage(text: string): 'en' | 'hi' | 'hinglish' {
   const hindiMatches = text.match(HINDI_PATTERNS)
   const hinglishMatches = text.match(HINGLISH_PATTERNS)
-  
+
   if (hindiMatches && hindiMatches.length > text.length * 0.3) {
     return 'hi'
   }
-  
+
   if (hinglishMatches && hinglishMatches.length > 2) {
     return 'hinglish'
   }
-  
+
   return 'en'
 }
 
@@ -169,7 +169,7 @@ async function callNvidiaDeepSeek(
   // DeepSeek R1 model has been deprecated by NVIDIA (410 Gone)
   // Verification is now optional - Llama Nemotron is sufficient for legal responses
   console.log('DeepSeek verification skipped (model deprecated) - using Llama Nemotron only')
-  
+
   return {
     content: "", // Empty content signals no verification
     citations: [],
@@ -279,13 +279,13 @@ ${SAFETY_SYSTEM_PROMPT}`
 
 LANGUAGE INSTRUCTION: Respond in Hindi (Devanagari script). Use formal Hindi legal terminology.`
   }
-  
+
   if (language === 'hinglish') {
     return `${basePrompt}
 
 LANGUAGE INSTRUCTION: Respond in Hinglish (Hindi written in Roman script). Mix Hindi and English naturally. Use terms like "haan", "nahi", "samjha", "dekh", etc.`
   }
-  
+
   return basePrompt
 }
 
@@ -299,28 +299,28 @@ export async function callAIService(
 ): Promise<AIResponse> {
   // Extract user query for safety check
   const userQuery = messages.filter(m => m.role === 'user').pop()?.content || ''
-  
+
   // CRITICAL: Check safety before processing
   const safetyCheck = checkSafety(userQuery)
   if (!safetyCheck.isSafe) {
     // Log violation
     if (safetyCheck.violationType) {
-      await logSafetyViolation(userId || null, userQuery, safetyCheck.violationType)
+      await logSafetyViolation(userId || null, userQuery, safetyCheck.violationType as ViolationType)
     }
-    
+
     // Return refusal message
     return {
-      content: generateRefusalMessage(safetyCheck.violationType || ViolationType.ILLEGAL_ACTIVITY),
+      content: generateRefusalMessage((safetyCheck.violationType as ViolationType) || ViolationType.ILLEGAL_ACTIVITY),
       citations: [],
       model: 'nvidia/llama-3.3-nemotron-super-49b-v1.5',
       safe: false,
       language: 'en'
     }
   }
-  
+
   // Detect language from user input
   const language = detectLanguage(userQuery)
-  
+
   // Inject language-specific system prompt
   const enhancedMessages = messages.map((msg) => {
     if (msg.role === 'system') {
@@ -378,17 +378,17 @@ export async function streamLegalResponse(
 ) {
   // Extract user query for safety check
   const userQuery = messages.filter(m => m.role === 'user').pop()?.content || ''
-  
+
   // CRITICAL: Check safety before streaming
   const safetyCheck = checkSafety(userQuery)
   if (!safetyCheck.isSafe) {
     // Log violation
     if (safetyCheck.violationType) {
-      await logSafetyViolation(userId || null, userQuery, safetyCheck.violationType)
+      await logSafetyViolation(userId || null, userQuery, safetyCheck.violationType as ViolationType)
     }
-    
+
     // Return refusal message as stream
-    const refusalMessage = generateRefusalMessage(safetyCheck.violationType || ViolationType.ILLEGAL_ACTIVITY)
+    const refusalMessage = generateRefusalMessage((safetyCheck.violationType as ViolationType) || ViolationType.ILLEGAL_ACTIVITY)
     const stream = new ReadableStream({
       start(controller) {
         controller.enqueue(new TextEncoder().encode(refusalMessage))
@@ -398,15 +398,15 @@ export async function streamLegalResponse(
         controller.close()
       }
     })
-    
+
     return new Response(stream, {
       headers: { 'Content-Type': 'text/plain; charset=utf-8' }
     })
   }
-  
+
   // Detect language
   const language = detectLanguage(userQuery)
-  
+
   // Inject language-specific system prompt
   let formattedMessages = [...messages]
   if (!formattedMessages.find(m => m.role === 'system')) {

@@ -6,7 +6,7 @@ const prisma = new PrismaClient()
 async function main() {
     try {
         console.log('Testing Database Connection...')
-        const userCount = await prisma.user.count()
+        const userCount = await prisma.userApp.count()
         console.log(`✅ Connection Successful! Found ${userCount} users.`)
 
         // Check for other entities if they exist, to ensure schema is pushed

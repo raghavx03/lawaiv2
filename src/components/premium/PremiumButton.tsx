@@ -16,7 +16,7 @@ interface PremiumButtonProps
 
 const variantClasses = {
   primary:
-    'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm hover:shadow-md hover:shadow-indigo-600/30',
+    'bg-black dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-200 text-white dark:text-black shadow-sm hover:shadow-md hover:shadow-black/10 dark:hover:shadow-white/10',
   secondary:
     'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white',
   ghost:
