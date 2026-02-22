@@ -374,21 +374,21 @@ export default function VoiceLawyerPage() {
         })
     }, [isSpeaking, restartListening])
 
-    const statusColor = status === 'listening' ? 'bg-green-500' : status === 'thinking' ? 'bg-amber-500' : status === 'speaking' ? 'bg-blue-500' : 'bg-gray-500'
+    const statusColor = status === 'listening' ? 'bg-white' : status === 'thinking' ? 'bg-slate-400' : status === 'speaking' ? 'bg-white' : 'bg-gray-500'
     const statusText = status === 'listening' ? 'Listening...' : status === 'thinking' ? 'Thinking...' : status === 'speaking' ? 'Advocate Sharma is speaking...' : 'Ready'
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+        <div className="min-h-screen bg-black text-white">
             {/* Header */}
-            <header className="sticky top-0 z-10 bg-slate-900/90 backdrop-blur-xl border-b border-slate-700/50">
+            <header className="sticky top-0 z-10 bg-black/90 backdrop-blur-xl border-b border-white/[0.06]">
                 <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <Link href="/ai-assistant" className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors">
                             <ArrowLeft className="w-5 h-5" />
                         </Link>
                         <div className="flex items-center gap-2">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
-                                <Scale className="w-5 h-5 text-white" />
+                            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-lg shadow-white/10">
+                                <Scale className="w-5 h-5 text-black" />
                             </div>
                             <div>
                                 <h1 className="text-lg font-semibold">Advocate Sharma</h1>
@@ -409,7 +409,7 @@ export default function VoiceLawyerPage() {
                             <div className="flex items-center gap-1 bg-slate-800/50 rounded-lg p-1">
                                 {[{ code: 'hi-IN', label: 'Hindi' }, { code: 'en-IN', label: 'English' }].map(l => (
                                     <button key={l.code} onClick={() => setLanguage(l.code)}
-                                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${language === l.code ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'text-slate-400 hover:text-slate-300'
+                                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${language === l.code ? 'bg-white/10 text-white border border-white/20' : 'text-slate-400 hover:text-slate-300'
                                             }`}>
                                         {l.label}
                                     </button>
@@ -431,15 +431,15 @@ export default function VoiceLawyerPage() {
                     /* ====== LANDING ====== */
                     <div className="flex flex-col items-center justify-center min-h-[65vh] text-center">
                         <div className="relative mb-6">
-                            <div className="w-32 h-32 rounded-full bg-gradient-to-br from-amber-500/20 to-orange-600/20 flex items-center justify-center border-2 border-amber-500/30 shadow-2xl">
-                                <Scale className="w-16 h-16 text-amber-400" />
+                            <div className="w-32 h-32 rounded-full bg-white/[0.06] flex items-center justify-center border-2 border-white/10 shadow-2xl">
+                                <Scale className="w-16 h-16 text-white" />
                             </div>
-                            <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-green-500 border-4 border-slate-900 flex items-center justify-center">
-                                <div className="w-3 h-3 rounded-full bg-white animate-pulse" />
+                            <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-white border-4 border-black flex items-center justify-center">
+                                <div className="w-3 h-3 rounded-full bg-black animate-pulse" />
                             </div>
                         </div>
 
-                        <h2 className="text-3xl font-bold mb-2 bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">
+                        <h2 className="text-3xl font-bold mb-2 text-white">
                             Talk to AI Lawyer
                         </h2>
                         <p className="text-lg text-slate-300 mb-1">Advocate Sharma — Senior Legal Consultant</p>
@@ -450,22 +450,22 @@ export default function VoiceLawyerPage() {
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10 w-full max-w-xl">
                             {[
-                                { icon: Mic, color: 'green', title: 'Smart Listening', desc: 'Stops when you talk, speaks when you pause' },
-                                { icon: Scale, color: 'amber', title: 'Real Indian Law', desc: 'Sections, Acts, case precedents & solutions' },
-                                { icon: Globe, color: 'blue', title: 'Auto Language', desc: 'Detects Hindi/English automatically' }
+                                { icon: Mic, title: 'Smart Listening', desc: 'Stops when you talk, speaks when you pause' },
+                                { icon: Scale, title: 'Real Indian Law', desc: 'Sections, Acts, case precedents & solutions' },
+                                { icon: Globe, title: 'Auto Language', desc: 'Detects Hindi/English automatically' }
                             ].map(f => (
-                                <div key={f.title} className={`bg-slate-800/60 border border-slate-700/50 rounded-xl p-4 text-center hover:border-${f.color}-500/30 transition-colors`}>
-                                    <f.icon className={`w-6 h-6 text-${f.color}-400 mx-auto mb-2`} />
-                                    <p className="text-sm font-medium text-slate-200">{f.title}</p>
-                                    <p className="text-xs text-slate-500 mt-1">{f.desc}</p>
+                                <div key={f.title} className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-4 text-center hover:border-white/20 transition-all duration-300">
+                                    <f.icon className="w-6 h-6 text-white/60 mx-auto mb-2" />
+                                    <p className="text-sm font-medium text-white">{f.title}</p>
+                                    <p className="text-xs text-white/40 mt-1">{f.desc}</p>
                                 </div>
                             ))}
                         </div>
 
                         <button onClick={startCall}
-                            className="group relative w-20 h-20 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 shadow-xl shadow-green-500/30 hover:shadow-green-400/50 transition-all duration-300 hover:scale-110 active:scale-95">
-                            <Phone className="w-8 h-8 text-white mx-auto" />
-                            <div className="absolute -bottom-9 left-1/2 -translate-x-1/2 whitespace-nowrap text-sm text-slate-400 group-hover:text-green-300 transition-colors font-medium">
+                            className="group relative w-20 h-20 rounded-full bg-white hover:bg-white/90 shadow-[0_0_40px_rgba(255,255,255,0.15)] hover:shadow-[0_0_60px_rgba(255,255,255,0.25)] transition-all duration-300 hover:scale-110 active:scale-95">
+                            <Phone className="w-8 h-8 text-black mx-auto" />
+                            <div className="absolute -bottom-9 left-1/2 -translate-x-1/2 whitespace-nowrap text-sm text-white/40 group-hover:text-white/70 transition-colors font-medium">
                                 Start Call
                             </div>
                         </button>
@@ -482,11 +482,11 @@ export default function VoiceLawyerPage() {
                                 className={`flex ${entry.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                 style={{ animation: 'fadeSlideUp 0.3s ease-out' }}>
                                 <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${entry.role === 'user'
-                                        ? 'bg-blue-600/80 text-white rounded-br-sm'
-                                        : 'bg-slate-700/80 text-slate-100 rounded-bl-sm border border-slate-600/30'
+                                    ? 'bg-white text-black rounded-br-sm'
+                                    : 'bg-white/[0.06] text-slate-100 rounded-bl-sm border border-white/[0.08]'
                                     }`}>
                                     <div className="flex items-center gap-2 mb-1.5">
-                                        {entry.role === 'assistant' ? <Scale className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" /> : <Mic className="w-3.5 h-3.5 text-blue-200 flex-shrink-0" />}
+                                        {entry.role === 'assistant' ? <Scale className="w-3.5 h-3.5 text-white/50 flex-shrink-0" /> : <Mic className="w-3.5 h-3.5 text-black/40 flex-shrink-0" />}
                                         <span className="text-xs text-slate-400 font-medium">
                                             {entry.role === 'user' ? 'You' : 'Adv. Sharma'} • {entry.timestamp.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                                         </span>
@@ -525,11 +525,11 @@ export default function VoiceLawyerPage() {
                             <div className="flex justify-start" style={{ animation: 'fadeSlideUp 0.3s ease-out' }}>
                                 <div className="bg-slate-700/80 rounded-2xl px-4 py-3 rounded-bl-sm border border-slate-600/30">
                                     <div className="flex items-center gap-3">
-                                        <Scale className="w-4 h-4 text-amber-400 animate-pulse" />
+                                        <Scale className="w-4 h-4 text-white/60 animate-pulse" />
                                         <span className="text-sm text-slate-300">Advocate Sharma is thinking...</span>
                                         <div className="flex gap-1">
                                             {[0, 1, 2].map(i => (
-                                                <div key={i} className="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: `${i * 200}ms` }} />
+                                                <div key={i} className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: `${i * 200}ms` }} />
                                             ))}
                                         </div>
                                     </div>
@@ -544,16 +544,16 @@ export default function VoiceLawyerPage() {
 
             {/* ====== CALL CONTROLS ====== */}
             {isCallActive && (
-                <div className="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl border-t border-slate-700/50">
+                <div className="fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-xl border-t border-white/[0.06]">
                     <div className="max-w-4xl mx-auto p-5">
                         {/* Wave visualization */}
                         <div className="flex justify-center items-end gap-[3px] mb-4 h-10">
                             {waveAmps.map((amp, i) => (
-                                <div key={i} className={`w-[3px] rounded-full transition-all duration-100 ${status === 'listening' ? 'bg-green-400' : status === 'speaking' ? 'bg-blue-400' : 'bg-gray-600'
+                                <div key={i} className={`w-[3px] rounded-full transition-all duration-100 ${status === 'listening' ? 'bg-white' : status === 'speaking' ? 'bg-white/70' : 'bg-gray-600'
                                     }`}
                                     style={{ height: `${Math.max(4, amp * 40)}px` }} />
                             ))}
-                            <span className={`text-xs ml-3 font-medium flex items-center gap-1 ${status === 'listening' ? 'text-green-400' : status === 'speaking' ? 'text-blue-400' : 'text-amber-400'
+                            <span className={`text-xs ml-3 font-medium flex items-center gap-1 ${status === 'listening' ? 'text-white' : status === 'speaking' ? 'text-white/60' : 'text-white/40'
                                 }`}>
                                 {status === 'listening' ? <><Mic className="w-3 h-3" /> Speak your question...</> : status === 'speaking' ? <><Volume2 className="w-3 h-3" /> Tap mic to interrupt</> : <><Scale className="w-3 h-3" /> Analyzing...</>}
                             </span>

@@ -371,19 +371,19 @@ export default function AIAssistantPage() {
   // ============ SUGGESTIONS ============
   const categories = [
     {
-      title: 'Criminal Law', icon: Scale, color: 'from-red-500 to-rose-600',
+      title: 'Criminal Law', icon: Scale, color: 'from-slate-800 to-black dark:from-white dark:to-slate-200',
       questions: ['What is Section 420 IPC?', 'Explain bail provisions under CrPC', 'How to file an FIR?']
     },
     {
-      title: 'Civil & Property', icon: BookOpen, color: 'from-blue-500 to-indigo-600',
+      title: 'Civil & Property', icon: BookOpen, color: 'from-slate-700 to-slate-900 dark:from-slate-200 dark:to-white',
       questions: ['How to file a civil suit?', 'Property registration process', 'Tenant eviction procedure']
     },
     {
-      title: 'Family Law', icon: HelpCircle, color: 'from-purple-500 to-violet-600',
+      title: 'Family Law', icon: HelpCircle, color: 'from-slate-800 to-black dark:from-white dark:to-slate-200',
       questions: ['Divorce by mutual consent', 'Child custody rights', 'Maintenance under Hindu law']
     },
     {
-      title: 'Consumer & Business', icon: Briefcase, color: 'from-emerald-500 to-green-600',
+      title: 'Consumer & Business', icon: Briefcase, color: 'from-slate-700 to-slate-900 dark:from-slate-200 dark:to-white',
       questions: ['Section 138 cheque bounce', 'Consumer complaint process', 'Company registration steps']
     }
   ]
@@ -404,8 +404,8 @@ export default function AIAssistantPage() {
         <div className="p-4 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-lg flex items-center justify-center shadow-sm">
-                <Scale className="w-4 h-4 text-white" />
+              <div className="w-8 h-8 bg-black dark:bg-white rounded-lg flex items-center justify-center shadow-sm">
+                <Scale className="w-4 h-4 text-white dark:text-black" />
               </div>
               <span className="font-bold text-slate-900 dark:text-white text-lg">LAW.AI</span>
             </div>
@@ -425,9 +425,9 @@ export default function AIAssistantPage() {
 
         {/* Voice Lawyer */}
         <Link href="/voice-lawyer"
-          className="mx-4 mt-3 flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-amber-50 dark:from-amber-950/20 to-orange-50 dark:to-orange-950/20 border border-amber-200 dark:border-amber-800/50 rounded-xl hover:from-amber-100 dark:hover:from-amber-950/40 hover:to-orange-100 dark:hover:to-orange-950/40 transition-all group active:scale-[0.98]">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-sm">
-            <Phone className="w-4 h-4 text-white" />
+          className="mx-4 mt-3 flex items-center gap-3 px-4 py-3 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all group active:scale-[0.98]">
+          <div className="w-9 h-9 rounded-lg bg-black dark:bg-white flex items-center justify-center shadow-sm">
+            <Phone className="w-4 h-4 text-white dark:text-black" />
           </div>
           <div>
             <p className="text-sm font-semibold text-slate-900 dark:text-white">🎙️ Voice Lawyer</p>
@@ -449,7 +449,7 @@ export default function AIAssistantPage() {
               <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-3 mb-2">Recent Chats</p>
               {sessions.map(s => (
                 <div key={s.id} onClick={() => selectSession(s)}
-                  className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all ${activeSession?.id === s.id ? 'bg-indigo-600 text-white shadow-md' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                  className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all ${activeSession?.id === s.id ? 'bg-black dark:bg-white text-white dark:text-black shadow-md' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
                     }`}>
                   <MessageSquare className={`w-4 h-4 flex-shrink-0 ${activeSession?.id === s.id ? 'text-white/60' : 'text-slate-400 dark:text-slate-500'}`} />
                   <div className="flex-1 min-w-0">
@@ -481,8 +481,8 @@ export default function AIAssistantPage() {
               <Menu className="w-5 h-5 text-slate-600 dark:text-slate-400" />
             </button>
             <div className="flex items-center gap-2">
-              <div className="w-9 h-9 bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-sm">
-                <Scale className="w-4 h-4 text-white" />
+              <div className="w-9 h-9 bg-black dark:bg-white rounded-xl flex items-center justify-center shadow-sm">
+                <Scale className="w-4 h-4 text-white dark:text-black" />
               </div>
               <div>
                 <h1 className="text-base font-bold text-slate-900 dark:text-white">AI Legal Assistant</h1>
@@ -492,7 +492,7 @@ export default function AIAssistantPage() {
           </div>
           <div className="flex items-center gap-1.5">
             <Link href="/voice-lawyer"
-              className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-semibold rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all shadow-sm hover:shadow-md active:scale-[0.97]">
+              className="flex items-center gap-1.5 px-3 py-2 bg-black dark:bg-white text-white dark:text-black text-xs font-semibold rounded-lg hover:bg-slate-800 dark:hover:bg-slate-200 transition-all shadow-sm hover:shadow-md active:scale-[0.97]">
               <Phone className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Voice Lawyer</span>
             </Link>
@@ -518,7 +518,7 @@ export default function AIAssistantPage() {
             /* ====== ANIMATED WELCOME STATE ====== */
             <div className="h-full flex flex-col items-center justify-center p-4 sm:p-8 animate-in fade-in duration-700">
               <div className="w-20 h-20 bg-gradient-to-br from-slate-100 dark:from-slate-800 to-slate-200 dark:to-slate-700 rounded-3xl flex items-center justify-center mb-6 shadow-inner animate-pulse">
-                <Sparkles className="w-10 h-10 text-amber-500" />
+                <Sparkles className="w-10 h-10 text-slate-900 dark:text-white" />
               </div>
 
               <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white mb-3 text-center tracking-tight">
@@ -527,7 +527,7 @@ export default function AIAssistantPage() {
 
               <p className="text-slate-600 dark:text-slate-400 text-base sm:text-lg text-center max-w-xl mb-10 leading-relaxed">
                 Expert answers on IPC, CrPC, Property, and Family Law.<br />
-                <span className="text-amber-600 dark:text-amber-400 font-medium">Capable of drafting legal notices instantly.</span>
+                <span className="text-slate-900 dark:text-white font-medium">Capable of drafting legal notices instantly.</span>
               </p>
 
               <div className="w-full max-w-4xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -535,20 +535,20 @@ export default function AIAssistantPage() {
                   <div key={cat.title} style={{ animationDelay: `${idx * 100}ms` }}>
                     <PremiumCard hoverable className="cursor-default h-full">
                       <div className="flex items-center gap-2 mb-4">
-                      <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${cat.color} flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform`}>
-                        <cat.icon className="w-4 h-4 text-white" />
+                        <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${cat.color} flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform`}>
+                          <cat.icon className="w-4 h-4 text-white" />
+                        </div>
+                        <h3 className="text-sm font-bold text-slate-900 dark:text-white">{cat.title}</h3>
                       </div>
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">{cat.title}</h3>
-                    </div>
-                    <div className="space-y-2">
-                      {cat.questions.map(q => (
-                        <button key={q} onClick={() => { setInput(q); textareaRef.current?.focus() }}
-                          className="w-full text-left px-3 py-2 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 text-xs sm:text-sm rounded-lg transition-all flex items-center justify-between group/btn active:scale-[0.98]">
-                          <span className="truncate">{q}</span>
-                          <ChevronRight className="w-3 h-3 text-slate-300 dark:text-slate-600 group-hover/btn:text-slate-500 dark:group-hover/btn:text-slate-400 group-hover/btn:translate-x-0.5 transition-all opacity-0 group-hover/btn:opacity-100" />
-                        </button>
-                      ))}
-                    </div>
+                      <div className="space-y-2">
+                        {cat.questions.map(q => (
+                          <button key={q} onClick={() => { setInput(q); textareaRef.current?.focus() }}
+                            className="w-full text-left px-3 py-2 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 text-xs sm:text-sm rounded-lg transition-all flex items-center justify-between group/btn active:scale-[0.98]">
+                            <span className="truncate">{q}</span>
+                            <ChevronRight className="w-3 h-3 text-slate-300 dark:text-slate-600 group-hover/btn:text-slate-500 dark:group-hover/btn:text-slate-400 group-hover/btn:translate-x-0.5 transition-all opacity-0 group-hover/btn:opacity-100" />
+                          </button>
+                        ))}
+                      </div>
                     </PremiumCard>
                   </div>
                 ))}
@@ -560,8 +560,8 @@ export default function AIAssistantPage() {
               {messages.map(m => (
                 <div key={m.id} className={`flex gap-4 ${m.role === 'user' ? 'justify-end' : ''} animate-in fade-in slide-in-from-bottom-2 duration-500`}>
                   {m.role === 'assistant' && (
-                    <div className="w-9 h-9 bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-xl flex items-center justify-center flex-shrink-0 mt-1 shadow-sm">
-                      <Scale className="w-4 h-4 text-white" />
+                    <div className="w-9 h-9 bg-black dark:bg-white rounded-xl flex items-center justify-center flex-shrink-0 mt-1 shadow-sm">
+                      <Scale className="w-4 h-4 text-white dark:text-black" />
                     </div>
                   )}
                   <div className={`max-w-[85%] ${m.role === 'user' ? '' : 'w-full'}`}>
@@ -571,7 +571,7 @@ export default function AIAssistantPage() {
                       </div>
                     )}
                     <div className={`rounded-2xl overflow-hidden ${m.role === 'user'
-                      ? 'bg-indigo-600 text-white px-5 py-3.5 rounded-br-md shadow-lg'
+                      ? 'bg-black dark:bg-white text-white dark:text-black px-5 py-3.5 rounded-br-md shadow-lg'
                       : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-6 py-5 rounded-bl-md shadow-sm'
                       }`}>
                       {m.role === 'user' ? (
@@ -584,10 +584,10 @@ export default function AIAssistantPage() {
 
                     {/* DRAFT PROMPT CARD - Only for AI messages with draft tag */}
                     {m.role === 'assistant' && (m.isDraft || m.content.includes('[OFFER_DRAFT]')) && (
-                      <div className="mt-3 bg-gradient-to-r from-blue-50 dark:from-blue-950/30 to-indigo-50 dark:to-indigo-950/30 border border-blue-100 dark:border-blue-800/50 rounded-xl p-4 flex items-center justify-between shadow-sm animate-in zoom-in duration-300">
+                      <div className="mt-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-4 flex items-center justify-between shadow-sm animate-in zoom-in duration-300">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-white dark:bg-slate-800 rounded-lg flex items-center justify-center shadow-sm border border-blue-100 dark:border-blue-800">
-                            <FileEdit className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                          <div className="w-10 h-10 bg-white dark:bg-slate-800 rounded-lg flex items-center justify-center shadow-sm border border-slate-200 dark:border-slate-700">
+                            <FileEdit className="w-5 h-5 text-slate-700 dark:text-slate-300" />
                           </div>
                           <div>
                             <h4 className="text-sm font-bold text-slate-900 dark:text-white">Draft Ready</h4>
