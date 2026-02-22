@@ -6,10 +6,10 @@ import { cookies } from 'next/headers'
 export async function POST(request: NextRequest) {
   try {
     console.log('🔍 Payment verification called')
-    
-    const { 
-      razorpay_order_id, 
-      razorpay_payment_id, 
+
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
       razorpay_signature,
       planType,
       userId
@@ -48,15 +48,24 @@ export async function POST(request: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet: { name: string; value: string; options: any }[]) {
+            try {
+              cookiesToSet.forEach(({ name, value }) => {
+                cookieStore.set(name, value)
+              })
+            } catch (e) {
+              // Read-only ignore
+            }
           },
         },
       }
     )
 
     const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
+
     if (authError || !user) {
       console.error('❌ Auth error:', authError)
       return NextResponse.json(
@@ -68,15 +77,15 @@ export async function POST(request: NextRequest) {
     // Update user plan in database
     try {
       const { safeDbOperation } = await import('@/lib/prisma')
-      
+
       await safeDbOperation(async () => {
         const { prisma } = await import('@/lib/prisma')
         if (!prisma) throw new Error('Database unavailable')
-        
+
         // Calculate plan expiry (30 days from now)
         const planExpiry = new Date()
         planExpiry.setDate(planExpiry.getDate() + 30)
-        
+
         // Update user plan
         const updatedUser = await prisma.userApp.upsert({
           where: { userId: user.id },
@@ -95,11 +104,11 @@ export async function POST(request: NextRequest) {
             usageCount: 0
           }
         })
-        
+
         console.log('✅ User plan updated:', updatedUser.plan)
         return updatedUser
       }, null)
-      
+
     } catch (dbError) {
       console.error('❌ Database update error:', dbError)
       // Continue anyway - payment was successful

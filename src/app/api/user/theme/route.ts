@@ -11,19 +11,20 @@ export async function PATCH(request: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
+          getAll() {
+            return cookieStore.getAll()
           },
-          set(name: string, value: string, options: any) {
-            try { cookieStore.set({ name, value, ...options }) } catch (e) {}
-          },
-          remove(name: string, options: any) {
-            try { cookieStore.set({ name, value: '', ...options }) } catch (e) {}
+          setAll(cookiesToSet: { name: string; value: string; options: any }[]) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) => {
+                cookieStore.set(name, value, options as any)
+              })
+            } catch (e) { }
           },
         },
       }
     )
-    
+
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -42,10 +43,10 @@ export async function PATCH(request: NextRequest) {
       await safeDbOperation(async () => {
         const { prisma } = await import('@/lib/prisma')
         if (!prisma) return null
-        
+
         return await prisma.userApp.upsert({
           where: { userId: user.id },
-          update: { 
+          update: {
             themePreference: theme,
             updatedAt: new Date()
           },
@@ -79,19 +80,20 @@ export async function GET(request: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
+          getAll() {
+            return cookieStore.getAll()
           },
-          set(name: string, value: string, options: any) {
-            try { cookieStore.set({ name, value, ...options }) } catch (e) {}
-          },
-          remove(name: string, options: any) {
-            try { cookieStore.set({ name, value: '', ...options }) } catch (e) {}
+          setAll(cookiesToSet: { name: string; value: string; options: any }[]) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) => {
+                cookieStore.set(name, value, options as any)
+              })
+            } catch (e) { }
           },
         },
       }
     )
-    
+
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -105,13 +107,13 @@ export async function GET(request: NextRequest) {
       const userProfile = await safeDbOperation(async () => {
         const { prisma } = await import('@/lib/prisma')
         if (!prisma) return null
-        
+
         return await prisma.userApp.findUnique({
           where: { userId: user.id },
           select: { themePreference: true }
         })
       }, null)
-      
+
       theme = userProfile?.themePreference || 'system'
     } catch (dbError) {
       console.warn('Database unavailable for theme fetch:', dbError)

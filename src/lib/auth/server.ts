@@ -52,21 +52,16 @@ export async function getSessionServer() {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
+          getAll() {
+            return cookieStore.getAll()
           },
-          set(name: string, value: string, options: CookieOptions) {
+          setAll(cookiesToSet: { name: string; value: string; options: any }[]) {
             try {
-              cookieStore.set({ name, value, ...options })
+              cookiesToSet.forEach(({ name, value, options }) => {
+                cookieStore.set(name, value, options as any)
+              })
             } catch (e) {
-              // Ignore in middleware
-            }
-          },
-          remove(name: string, options: CookieOptions) {
-            try {
-              cookieStore.set({ name, value: '', ...options })
-            } catch (e) {
-              // Ignore in middleware
+              // Ignore in server environments
             }
           },
         },
@@ -99,9 +94,18 @@ export async function getSessionFromRequest(request: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          get(name: string) {
-            return request.cookies.get(name)?.value
+          getAll() {
+            return request.cookies.getAll()
           },
+          setAll(cookiesToSet: { name: string; value: string; options: any }[]) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) => {
+                request.cookies.set(name, value)
+              })
+            } catch (error) {
+              // Ignore error
+            }
+          }
         },
       }
     )
@@ -149,21 +153,16 @@ export async function createServerSupabaseClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
+        getAll() {
+          return cookieStore.getAll()
         },
-        set(name: string, value: string, options: CookieOptions) {
+        setAll(cookiesToSet: { name: string; value: string; options: any }[]) {
           try {
-            cookieStore.set({ name, value, ...options })
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options as any)
+            })
           } catch (e) {
-            // Ignore in middleware
-          }
-        },
-        remove(name: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value: '', ...options })
-          } catch (e) {
-            // Ignore in middleware
+            // Ignore in server environments
           }
         },
       },

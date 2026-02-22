@@ -30,8 +30,17 @@ export async function getServerUser(): Promise<AuthUser | null> {
 
     const supabase = createServerClient(supabaseUrl, supabaseKey, {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet: { name: string; value: string; options: any }[]) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options as any)
+            })
+          } catch (e) {
+            // Read-only environment, ignore
+          }
         },
       },
     })
@@ -119,8 +128,17 @@ export async function validateApiAuth(request: NextRequest): Promise<AuthUser | 
 
     const supabase = createServerClient(supabaseUrl, supabaseKey, {
       cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet: { name: string; value: string; options: any }[]) {
+          try {
+            cookiesToSet.forEach(({ name, value }) => {
+              request.cookies.set(name, value)
+            })
+          } catch (e) {
+            // Ignore in read-only environment
+          }
         },
       },
     })

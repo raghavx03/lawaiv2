@@ -8,17 +8,17 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   console.log('[AuthCallback] Processing auth callback')
-  
+
   try {
     const { searchParams } = new URL(request.url)
     const code = searchParams.get('code')
     const error = searchParams.get('error')
     const errorDescription = searchParams.get('error_description')
     const next = searchParams.get('next') ?? '/dashboard'
-    
+
     console.log('[AuthCallback] Code present:', !!code)
     console.log('[AuthCallback] Error present:', !!error)
-    
+
     // Handle OAuth errors
     if (error) {
       console.error('[AuthCallback] OAuth error:', sanitizeForLog(error), sanitizeForLog(errorDescription || ''))
@@ -36,30 +36,25 @@ export async function GET(request: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
+          getAll() {
+            return cookieStore.getAll()
           },
-          set(name: string, value: string, options: any) {
+          setAll(cookiesToSet: { name: string; value: string; options: any }[]) {
             try {
-              cookieStore.set({ name, value, ...options })
+              cookiesToSet.forEach(({ name, value, options }) => {
+                cookieStore.set(name, value, options as any)
+              })
             } catch (e) {
-              // Ignore cookie set errors in middleware
-            }
-          },
-          remove(name: string, options: any) {
-            try {
-              cookieStore.set({ name, value: '', ...options })
-            } catch (e) {
-              // Ignore cookie remove errors in middleware
+              // Ignore cookie set errors in server component/route handlers
             }
           },
         },
       }
     )
-    
+
     console.log('[AuthCallback] Exchanging code for session')
     const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
-    
+
     if (exchangeError) {
       console.error('[AuthCallback] Exchange error:', sanitizeForLog(exchangeError))
       return NextResponse.redirect(new URL(`/auth/login?error=auth_failed&message=${encodeURIComponent(sanitizeInput(exchangeError.message))}`, request.url))
@@ -78,7 +73,7 @@ export async function GET(request: NextRequest) {
       await safeDbOperation(async () => {
         const { prisma } = await import('@/lib/prisma')
         if (!prisma) throw new Error('Database unavailable')
-        
+
         const userProfile = await prisma.userApp.upsert({
           where: { userId: data.user.id },
           update: {
@@ -95,7 +90,7 @@ export async function GET(request: NextRequest) {
             usageCount: 0
           }
         })
-        
+
         console.log('[AuthCallback] User profile created/updated successfully:', sanitizeForLog(userProfile.email))
         return userProfile
       }, null)
@@ -106,14 +101,14 @@ export async function GET(request: NextRequest) {
 
     const sanitizedNext = next && next.startsWith('/') && !next.includes('..') && !next.includes('<') && !next.includes('>') ? sanitizeInput(next) : '/dashboard'
     console.log('[AuthCallback] Redirecting to:', sanitizeForLog(sanitizedNext))
-    
+
     // Create redirect response with history replacement to avoid Google OAuth in browser history
     const redirectUrl = new URL(sanitizedNext, request.url)
     const response = NextResponse.redirect(redirectUrl)
-    
+
     // Add header to indicate this should replace history entry
     response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
-    
+
     return response
   } catch (error) {
     console.error('[AuthCallback] Critical error:', sanitizeForLog(error))
