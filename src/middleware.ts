@@ -1,4 +1,4 @@
-import { createServerClient } from '@supabase/ssr'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
@@ -21,37 +21,31 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
-  // Create Supabase client with OLD cookie API (compatible with @supabase/ssr@0.1.0)
+  // Create robust Supabase client using @supabase/ssr ^0.5.2 best practices
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
-      get(name: string) {
-        return request.cookies.get(name)?.value
+      getAll() {
+        return request.cookies.getAll()
       },
-      set(name: string, value: string, options: any) {
-        // Update the request cookies
-        request.cookies.set(name, value)
-        // Create new response with updated cookies
-        response = NextResponse.next({
-          request: { headers: request.headers },
+      setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
+        cookiesToSet.forEach(({ name, value }) => {
+          request.cookies.set(name, value)
         })
+
+        // Update the response with new cookies
+        response = NextResponse.next({
+          request,
+        })
+
         // Re-apply security headers
         response.headers.set('X-Content-Type-Options', 'nosniff')
         response.headers.set('X-Frame-Options', 'DENY')
         response.headers.set('X-XSS-Protection', '1; mode=block')
         response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
-        // Set cookie on response
-        response.cookies.set(name, value, options)
-      },
-      remove(name: string, options: any) {
-        request.cookies.set(name, '')
-        response = NextResponse.next({
-          request: { headers: request.headers },
+
+        cookiesToSet.forEach(({ name, value, options }) => {
+          response.cookies.set(name, value, options)
         })
-        response.headers.set('X-Content-Type-Options', 'nosniff')
-        response.headers.set('X-Frame-Options', 'DENY')
-        response.headers.set('X-XSS-Protection', '1; mode=block')
-        response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
-        response.cookies.set(name, '', options)
       },
     },
   })

@@ -390,7 +390,7 @@ export default function AIAssistantPage() {
 
   // ============ RENDER ============
   return (
-    <div className="h-[calc(100vh-8rem)] min-h-[600px] flex bg-white dark:bg-slate-900 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm font-sans mx-auto w-full relative">
+    <div className="flex h-full bg-white dark:bg-slate-900 overflow-hidden w-full relative">
       <Toaster position="top-center" toastOptions={{ style: { borderRadius: '12px', fontSize: '14px' } }} />
 
       {/* ====== SIDEBAR ====== */}
@@ -399,7 +399,7 @@ export default function AIAssistantPage() {
       <aside className={`
         absolute inset-y-0 left-0 z-50 w-80 bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col
         transform transition-transform duration-300 ease-in-out
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:relative lg:w-72
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} xl:translate-x-0 xl:relative xl:w-72
       `}>
         <div className="p-4 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center justify-between mb-3">
@@ -477,7 +477,7 @@ export default function AIAssistantPage() {
         {/* Header */}
         <header className="bg-white dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center justify-between sticky top-0 z-10">
           <div className="flex items-center gap-3">
-            <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+            <button onClick={() => setSidebarOpen(true)} className="xl:hidden p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
               <Menu className="w-5 h-5 text-slate-600 dark:text-slate-400" />
             </button>
             <div className="flex items-center gap-2">
