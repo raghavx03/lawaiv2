@@ -83,9 +83,8 @@ export const Sidebar = memo(function Sidebar({ isOpen: mobileOpen = false, onClo
       )}
 
       {/* Sidebar */}
-      <div className={`
-        bg-white dark:bg-black border-r border-slate-200 dark:border-slate-800 transform transition-all duration-300 ease-out flex flex-col
-        fixed inset-y-0 left-0 z-50 lg:static lg:z-auto
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 bg-white/60 dark:bg-[#0B0F19]/60 backdrop-blur-2xl border-r border-slate-200/50 dark:border-slate-800/50 flex flex-col transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] transform
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0
         shadow-2xl lg:shadow-lg
@@ -93,7 +92,7 @@ export const Sidebar = memo(function Sidebar({ isOpen: mobileOpen = false, onClo
         w-64 md:w-72
       `}>
         {/* Header with Logo and Toggle */}
-        <div className="flex items-center justify-between h-16 px-4 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex items-center justify-between h-16 px-4 border-b border-slate-200/50 dark:border-slate-800/50">
           {!isCollapsed && (
             <Link href="/" className="flex items-center gap-3 flex-1">
               <div className="w-10 h-10 bg-black dark:bg-white rounded-xl flex items-center justify-center flex-shrink-0">
@@ -115,14 +114,17 @@ export const Sidebar = memo(function Sidebar({ isOpen: mobileOpen = false, onClo
             {/* Desktop Toggle */}
             <button
               onClick={toggleCollapse}
-              className="hidden lg:flex p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-400 hover:text-black dark:hover:text-white"
+              className="hidden lg:flex w-10 h-10 items-center justify-center rounded-xl bg-black dark:bg-white text-white dark:text-black shadow-lg shadow-black/20 dark:shadow-white/20 hover:scale-105 active:scale-95 transition-all duration-300 relative overflow-hidden group"
               aria-label="Toggle sidebar"
             >
-              {isCollapsed ? (
-                <Menu className="w-5 h-5" />
-              ) : (
-                <ChevronLeft className="w-5 h-5" />
-              )}
+              <div className="absolute inset-0 bg-white/20 dark:bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative z-10">
+                {isCollapsed ? (
+                  <Menu className="w-5 h-5" />
+                ) : (
+                  <ChevronLeft className="w-5 h-5" />
+                )}
+              </div>
             </button>
 
             {/* Mobile Close */}
@@ -144,25 +146,30 @@ export const Sidebar = memo(function Sidebar({ isOpen: mobileOpen = false, onClo
                 key={item.name}
                 href={item.href}
                 className={`
-                  group flex items-center justify-between px-3 py-3 rounded-lg transition-all duration-200 relative stagger-item
+                  group flex items-center justify-between px-3 py-3 rounded-xl transition-all duration-300 relative stagger-item overflow-hidden
                   ${item.isActive
-                    ? 'bg-black text-white dark:bg-white dark:text-black shadow-lg shadow-black/10 dark:shadow-white/10'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-black dark:hover:text-white'
+                    ? 'bg-black text-white dark:bg-white dark:text-black shadow-lg shadow-black/20 dark:shadow-white/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-900/5 dark:hover:bg-white/5 hover:text-black dark:hover:text-white'
                   }
                 `}
                 title={isCollapsed ? item.name : undefined}
               >
-                <div className="flex items-center gap-3 min-w-0">
+                {/* Active/Hover Glow Indicator */}
+                {item.isActive && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-1/2 bg-white dark:bg-black rounded-r-full shadow-[0_0_10px_rgba(255,255,255,0.8)] dark:shadow-[0_0_10px_rgba(0,0,0,0.8)]" />
+                )}
+
+                <div className="flex items-center gap-3 relative z-10">
                   <item.icon className={`h-5 w-5 flex-shrink-0 ${item.isActive ? 'text-white dark:text-black' : 'text-slate-500 dark:text-slate-400 group-hover:text-black dark:group-hover:text-white'}`} />
                   {!isCollapsed && (
                     <span className="text-sm font-medium truncate">{item.name}</span>
                   )}
                 </div>
                 {item.isActive && !isCollapsed && (
-                  <ChevronRight className="h-4 w-4 text-white/60 dark:text-black/60 flex-shrink-0" />
+                  <ChevronRight className="h-4 w-4 text-white/60 dark:text-black/60 flex-shrink-0 relative z-10" />
                 )}
                 {item.isActive && isCollapsed && (
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-black dark:bg-white rounded-l-full" />
+                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-black dark:bg-white rounded-l-full relative z-10" />
                 )}
               </Link>
             ))}
@@ -170,9 +177,9 @@ export const Sidebar = memo(function Sidebar({ isOpen: mobileOpen = false, onClo
         </nav>
 
         {/* Footer */}
-        <div className="p-3 border-t border-slate-200 dark:border-slate-800 space-y-3">
+        <div className="p-3 border-t border-slate-200/50 dark:border-slate-800/50 space-y-3">
           {!isCollapsed && (
-            <div className="flex items-center justify-between px-3 py-2 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
+            <div className="flex items-center justify-between px-3 py-2 bg-slate-100/50 dark:bg-slate-800/30 rounded-xl">
               <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Theme</span>
               <ThemeToggle />
             </div>
@@ -192,7 +199,7 @@ export const Sidebar = memo(function Sidebar({ isOpen: mobileOpen = false, onClo
             </div>
           )}
         </div>
-      </div>
+      </aside>
     </>
   )
 })

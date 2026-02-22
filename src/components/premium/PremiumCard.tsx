@@ -26,20 +26,25 @@ export function PremiumCard({
   return (
     <div
       className={`
-        relative overflow-hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 
-        rounded-xl shadow-sm transition-all duration-300 ease-out flex flex-col
-        ${hoverable ? 'hover:shadow-lg hover:shadow-slate-200/40 dark:hover:shadow-slate-900/40 hover:-translate-y-0.5 hover:border-slate-300/80 dark:hover:border-slate-700/80' : ''}
+        relative overflow-hidden bg-white/60 dark:bg-slate-900/40 backdrop-blur-2xl border border-slate-200/80 dark:border-slate-800/80 
+        rounded-2xl shadow-sm transition-all duration-500 cubic-bezier(0.22, 1, 0.36, 1) flex flex-col group
+        ${hoverable ? 'hover:shadow-2xl hover:shadow-slate-300/30 dark:hover:shadow-black/40 hover:-translate-y-1 hover:border-slate-300 dark:hover:border-slate-700/80' : ''}
         ${className}
       `}
     >
       {/* Subtle top highlight gradient */}
-      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/50 dark:via-white/10 to-transparent pointer-events-none" />
+      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/60 dark:via-white/20 to-transparent pointer-events-none opacity-50 group-hover:opacity-100 transition-opacity duration-500" />
+
+      {/* Animated hover glow overlay */}
+      {hoverable && (
+        <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent dark:from-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+      )}
 
       {/* Header */}
       {(title || description) && (
-        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-800/20 backdrop-blur-sm">
+        <div className="px-6 py-5 border-b border-slate-200/50 dark:border-slate-800/50 bg-white/40 dark:bg-slate-800/10 backdrop-blur-md relative z-10">
           {title && (
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight group-hover:text-black dark:group-hover:text-white transition-colors">
               {title}
             </h3>
           )}
@@ -52,11 +57,11 @@ export function PremiumCard({
       )}
 
       {/* Content */}
-      <div className={`flex-1 ${defaultPadding}`}>{children}</div>
+      <div className={`flex-1 relative z-10 ${defaultPadding}`}>{children}</div>
 
       {/* Footer */}
       {footer && (
-        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/80 dark:bg-slate-800/40 backdrop-blur-md rounded-b-xl mt-auto">
+        <div className="px-6 py-4 border-t border-slate-200/50 dark:border-slate-800/50 bg-slate-50/40 dark:bg-slate-900/40 backdrop-blur-xl rounded-b-2xl mt-auto relative z-10">
           {footer}
         </div>
       )}
