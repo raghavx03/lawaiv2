@@ -30,14 +30,19 @@ export async function getServerUser(): Promise<AuthUser | null> {
 
     const supabase = createServerClient(supabaseUrl, supabaseKey, {
       cookies: {
-        getAll() {
-          return cookieStore.getAll()
+        get(name: string) {
+          return cookieStore.get(name)?.value
         },
-        setAll(cookiesToSet: { name: string; value: string; options: any }[]) {
+        set(name: string, value: string, options: any) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options as any)
-            })
+            cookieStore.set({ name, value, ...options })
+          } catch (e) {
+            // Read-only environment, ignore
+          }
+        },
+        remove(name: string, options: any) {
+          try {
+            cookieStore.set({ name, value: '', ...options })
           } catch (e) {
             // Read-only environment, ignore
           }
@@ -128,14 +133,19 @@ export async function validateApiAuth(request: NextRequest): Promise<AuthUser | 
 
     const supabase = createServerClient(supabaseUrl, supabaseKey, {
       cookies: {
-        getAll() {
-          return request.cookies.getAll()
+        get(name: string) {
+          return request.cookies.get(name)?.value
         },
-        setAll(cookiesToSet: { name: string; value: string; options: any }[]) {
+        set(name: string, value: string, options: any) {
           try {
-            cookiesToSet.forEach(({ name, value }) => {
-              request.cookies.set(name, value)
-            })
+            request.cookies.set(name, value)
+          } catch (e) {
+            // Ignore in read-only environment
+          }
+        },
+        remove(name: string, options: any) {
+          try {
+            request.cookies.set(name, '')
           } catch (e) {
             // Ignore in read-only environment
           }
