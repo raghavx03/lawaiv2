@@ -390,14 +390,14 @@ export default function AIAssistantPage() {
 
   // ============ RENDER ============
   return (
-    <div className="h-screen flex bg-white overflow-hidden font-sans">
+    <div className="h-[calc(100vh-8rem)] min-h-[600px] flex bg-white dark:bg-slate-900 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm font-sans mx-auto w-full relative">
       <Toaster position="top-center" toastOptions={{ style: { borderRadius: '12px', fontSize: '14px' } }} />
 
       {/* ====== SIDEBAR ====== */}
-      {sidebarOpen && <div className="fixed inset-0 bg-black/40 z-40 lg:hidden backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />}
+      {sidebarOpen && <div className="absolute inset-0 bg-black/40 z-40 lg:hidden backdrop-blur-sm rounded-2xl" onClick={() => setSidebarOpen(false)} />}
 
       <aside className={`
-        fixed inset-y-0 left-0 z-50 w-80 bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col
+        absolute inset-y-0 left-0 z-50 w-80 bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col
         transform transition-transform duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:relative lg:w-72
       `}>
