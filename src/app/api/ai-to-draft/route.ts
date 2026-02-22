@@ -7,7 +7,7 @@ import { logDraftCreated } from '@/lib/case-activity'
 // POST - Convert AI response to editable draft
 export async function POST(request: NextRequest) {
   try {
-    const user = await getServerUser()
+    const user = await getServerUser(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

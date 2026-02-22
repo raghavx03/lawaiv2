@@ -6,7 +6,7 @@ import { safeDbOperation } from '@/lib/prisma'
 // GET - Fetch all cases for user
 export async function GET(request: NextRequest) {
   try {
-    const user = await getServerUser()
+    const user = await getServerUser(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
             { updatedAt: 'desc' }
           ]
         })
-        
+
         // Map CaseTracker to Case-like structure
         return trackers.map((t: any) => ({
           id: t.id,
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
 // POST - Create new case
 export async function POST(request: NextRequest) {
   try {
-    const user = await getServerUser()
+    const user = await getServerUser(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
             content: `Case "${title}" was created`,
             metadata: { caseType, court, petitioner, respondent }
           }
-        }).catch(() => {})
+        }).catch(() => { })
 
         return created
       } catch (e) {
@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
             }
           }
         })
-        
+
         // Return in Case-like structure
         return {
           id: created.id,
@@ -194,7 +194,7 @@ export async function POST(request: NextRequest) {
 // PATCH - Update case
 export async function PATCH(request: NextRequest) {
   try {
-    const user = await getServerUser()
+    const user = await getServerUser(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -254,7 +254,7 @@ export async function PATCH(request: NextRequest) {
               content: `Status changed from ${existing.status} to ${updates.status}`,
               metadata: { oldStatus: existing.status, newStatus: updates.status }
             }
-          }).catch(() => {})
+          }).catch(() => { })
         }
 
         return updated
@@ -301,7 +301,7 @@ export async function PATCH(request: NextRequest) {
 // DELETE - Delete case
 export async function DELETE(request: NextRequest) {
   try {
-    const user = await getServerUser()
+    const user = await getServerUser(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

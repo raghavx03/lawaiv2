@@ -5,7 +5,7 @@ import { streamLegalResponse } from '@/lib/ai-service'
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getServerUser()
+    const user = await getServerUser(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

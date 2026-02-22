@@ -16,7 +16,7 @@ const summarizerSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getServerUser().catch(() => null)
+    const user = await getServerUser(request).catch(() => null)
     const clientIP = getClientIP(request)
 
     if (!user) {
@@ -110,7 +110,7 @@ RULES:
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await getServerUser().catch(() => null)
+    const user = await getServerUser(request).catch(() => null)
     const clientIP = getClientIP(request)
     const userId = user?.id || `ip-${clientIP}`
 

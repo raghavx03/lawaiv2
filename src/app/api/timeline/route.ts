@@ -6,7 +6,7 @@ import { safeDbOperation } from '@/lib/prisma'
 // GET recent activities across all cases for dashboard
 export async function GET(request: NextRequest) {
   try {
-    const user = await getServerUser()
+    const user = await getServerUser(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

@@ -7,7 +7,7 @@ import { logNoticeCreated } from '@/lib/case-activity'
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getServerUser().catch(() => null)
+    const user = await getServerUser(request).catch(() => null)
     const body = await request.json()
     const { noticeType, recipient, recipientAddress, subject, details, amount, dueDate, caseId } = body
 
@@ -120,7 +120,7 @@ NOTICE DRAFTING RULES:
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await getServerUser().catch(() => null)
+    const user = await getServerUser(request).catch(() => null)
     const { searchParams } = new URL(request.url)
     const caseId = searchParams.get('caseId')
     const userId = user?.id || 'anonymous'

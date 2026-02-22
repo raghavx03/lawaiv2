@@ -15,7 +15,7 @@ const chatSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const clientIP = getClientIP(request)
-    const user = await getServerUser().catch(() => null)
+    const user = await getServerUser(request).catch(() => null)
 
     // Rate limit for non-authenticated users
     if (!user) {

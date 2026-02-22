@@ -14,19 +14,21 @@ export interface AuthUser {
   expiryDate?: Date
 }
 
-// Get authenticated user from server components
-export async function getServerUser(): Promise<AuthUser | null> {
+// Get authenticated user from server components or API routes
+export async function getServerUser(request?: NextRequest): Promise<AuthUser | null> {
   try {
     // Dev mode: return dev user with PRO access
     if (shouldUseDevelopmentMode()) {
       return createDevUser()
     }
 
-    const { getSessionServer } = await import('./auth/server')
-    const session = await getSessionServer()
+    const { getSessionServer, getSessionFromRequest } = await import('./auth/server')
+
+    // If request is provided (API routes), use request cookies which are more reliable on Vercel
+    const session = request ? await getSessionFromRequest(request) : await getSessionServer()
 
     if (!session || !session.user) {
-      console.log('[getServerUser] No valid session returned from getSessionServer')
+      console.log(`[getServerUser] No valid session returned from ${request ? 'request' : 'server cookies'}`)
       return null
     }
 

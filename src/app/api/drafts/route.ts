@@ -32,7 +32,7 @@ const DRAFT_TEMPLATES: Record<string, string> = {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getServerUser().catch(() => null)
+    const user = await getServerUser(request).catch(() => null)
     const clientIP = getClientIP(request)
 
     if (!user) {
@@ -158,7 +158,7 @@ RULES:
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await getServerUser().catch(() => null)
+    const user = await getServerUser(request).catch(() => null)
     if (!user) return NextResponse.json([], { status: 401 })
 
     // IP fallback discouraged for fetching list, but allowed for singular fetch if implemented
@@ -210,7 +210,7 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const user = await getServerUser().catch(() => null)
+    const user = await getServerUser(request).catch(() => null)
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { id, content, title } = await request.json()

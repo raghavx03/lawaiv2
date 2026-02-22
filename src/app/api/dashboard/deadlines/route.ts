@@ -5,7 +5,7 @@ import { safeDbOperation } from '@/lib/prisma'
 
 export async function GET() {
   try {
-    const user = await getServerUser()
+    const user = await getServerUser(request)
     
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

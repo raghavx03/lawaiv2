@@ -8,7 +8,7 @@ import { extractClauses, formatClausesForDisplay } from '@/lib/clause-extractor'
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getServerUser()
+    const user = await getServerUser(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

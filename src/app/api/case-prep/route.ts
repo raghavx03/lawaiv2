@@ -6,7 +6,7 @@ import { safeDbOperation } from '@/lib/prisma'
 // POST - Generate case preparation summary for hearing
 export async function POST(request: NextRequest) {
   try {
-    const user = await getServerUser()
+    const user = await getServerUser(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
