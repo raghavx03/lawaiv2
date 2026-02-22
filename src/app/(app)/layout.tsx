@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Sidebar } from '@/components/dashboard/sidebar'
 import { Menu } from 'lucide-react'
+import { useScrollReveal } from '@/hooks/useScrollReveal'
 
 export default function AppLayout({
   children,
@@ -10,6 +11,7 @@ export default function AppLayout({
   children: React.ReactNode
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  useScrollReveal()
 
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-900 overflow-hidden">
