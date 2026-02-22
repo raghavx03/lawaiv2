@@ -22,44 +22,16 @@ export async function getServerUser(): Promise<AuthUser | null> {
       return createDevUser()
     }
 
-    const nextHeaders = require('next/headers')
-    const headersList = nextHeaders.headers()
-    const cookieHeader = headersList.get('cookie') || ''
+    const { getSessionServer } = await import('./auth/server')
+    const session = await getSessionServer()
 
-    // Debug cookies
-    console.log('[getServerUser] Cookie header snippet:', cookieHeader.substring(0, 50) + '...')
-
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-    const supabase = createServerClient(supabaseUrl, supabaseKey, {
-      cookies: {
-        get(name: string) {
-          const match = cookieHeader.match(new RegExp(`(^| )${name}=([^;]+)`))
-          const val = match ? decodeURIComponent(match[2]) : undefined
-          if (name.includes('supabase') || name.includes('sb-')) {
-            console.log(`[getServerUser] Read cookie ${name} from headers:`, val ? 'FOUND' : 'MISSING')
-          }
-          return val
-        },
-        set(name: string, value: string, options: any) { },
-        remove(name: string, options: any) { },
-      },
-    })
-
-    const { data: { user }, error } = await supabase.auth.getUser()
-
-    if (error) {
-      console.error('[getServerUser] supabase.auth.getUser() returned error:', error.message)
+    if (!session || !session.user) {
+      console.log('[getServerUser] No valid session returned from getSessionServer')
       return null
     }
 
-    if (!user) {
-      console.log('[getServerUser] supabase.auth.getUser() returned null user')
-      return null
-    }
-
-    console.log('[getServerUser] Valid Supabase user found:', user.id)
+    const user = session.user
+    console.log('[getServerUser] Valid session found for user:', user.id)
 
     // Try database first, fallback to Supabase-only auth
     try {
@@ -129,39 +101,14 @@ export async function validateApiAuth(request: NextRequest): Promise<AuthUser | 
       }
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    const { getSessionFromRequest } = await import('./auth/server')
+    const session = await getSessionFromRequest(request)
 
-    if (!supabaseUrl || !supabaseKey || supabaseUrl.includes('placeholder')) {
-      return createDevUser()
-    }
-
-    const supabase = createServerClient(supabaseUrl, supabaseKey, {
-      cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value
-        },
-        set(name: string, value: string, options: any) {
-          try {
-            request.cookies.set(name, value)
-          } catch (e) {
-            // Ignore in read-only environment
-          }
-        },
-        remove(name: string, options: any) {
-          try {
-            request.cookies.set(name, '')
-          } catch (e) {
-            // Ignore in read-only environment
-          }
-        },
-      },
-    })
-
-    const { data: { user }, error } = await supabase.auth.getUser()
-    if (error || !user) {
+    if (!session || !session.user) {
       return null
     }
+
+    const user = session.user
 
     try {
       const { prisma } = await import('./prisma')
