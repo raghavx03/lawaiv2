@@ -52,7 +52,7 @@ function SignupForm() {
           data: {
             full_name: fullName.trim(),
           },
-          emailRedirectTo: `${window.location.origin}/api/auth/callback`
+          emailRedirectTo: `${window.location.origin}/api/auth/callback?next=/dashboard`
         }
       })
 
@@ -105,7 +105,7 @@ function SignupForm() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/api/auth/callback`
+          redirectTo: `${window.location.origin}/api/auth/callback?next=/dashboard`
         }
       })
 
