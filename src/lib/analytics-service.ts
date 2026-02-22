@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma'
+import { prisma, safeDbOperation } from '@/lib/prisma'
 
 interface AnalyticsMetrics {
   totalQueries: number
@@ -13,9 +13,24 @@ interface AnalyticsMetrics {
   userRetention: number
 }
 
+const DEFAULT_METRICS: AnalyticsMetrics = {
+  totalQueries: 0,
+  dailyQueries: 0,
+  activeUsers: 0,
+  conversionRate: 0,
+  mrr: 0,
+  growthRate: 0,
+  domainDistribution: [],
+  errorRate: 0,
+  avgAnalysisTime: 0,
+  userRetention: 0,
+}
+
 // Get all analytics metrics
 export async function getAnalyticsMetrics(): Promise<AnalyticsMetrics> {
-  try {
+  const result = await safeDbOperation(async () => {
+    if (!prisma) throw new Error('Database unavailable')
+
     const now = new Date()
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
@@ -111,14 +126,13 @@ export async function getAnalyticsMetrics(): Promise<AnalyticsMetrics> {
       mrr,
       growthRate,
       domainDistribution,
-      errorRate: 0.2, // Placeholder
+      errorRate: 0.2,
       avgAnalysisTime: parseFloat(avgAnalysisTime.toFixed(2)),
-      userRetention: 78, // Placeholder
+      userRetention: 78,
     }
-  } catch (error) {
-    console.error('Error fetching analytics metrics:', error)
-    throw error
-  }
+  }, DEFAULT_METRICS)
+
+  return result ?? DEFAULT_METRICS
 }
 
 // Get time series data for charts

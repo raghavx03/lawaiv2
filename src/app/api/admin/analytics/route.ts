@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAnalyticsMetrics } from '@/lib/analytics-service'
 
+export const dynamic = 'force-dynamic'
+
 // Cache for 5 minutes
 const CACHE_DURATION = 5 * 60 * 1000
 let cachedMetrics: any = null
