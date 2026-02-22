@@ -58,6 +58,12 @@ export async function GET(request: NextRequest) {
     )
 
     console.log('[AuthCallback] Exchanging code for session')
+    // Debug: log cookie names to verify PKCE code_verifier is present
+    const allCookies = cookieStore.getAll()
+    console.log('[AuthCallback] Cookies present:', allCookies.map(c => c.name).join(', '))
+    const pkCookies = allCookies.filter(c => c.name.includes('code_verifier') || c.name.includes('pkce'))
+    console.log('[AuthCallback] PKCE cookies found:', pkCookies.length, pkCookies.map(c => c.name))
+
     const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
 
     if (exchangeError) {

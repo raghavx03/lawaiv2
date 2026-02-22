@@ -23,7 +23,14 @@ export function getSupabase(): SupabaseClient | null {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-  supabaseInstance = createBrowserClient(supabaseUrl, supabaseKey)
+  supabaseInstance = createBrowserClient(supabaseUrl, supabaseKey, {
+    auth: {
+      flowType: 'pkce',
+      detectSessionInUrl: true,
+      persistSession: true,
+      autoRefreshToken: true,
+    },
+  })
 
   return supabaseInstance
 }
