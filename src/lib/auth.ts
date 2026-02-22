@@ -25,36 +25,44 @@ export async function getServerUser(): Promise<AuthUser | null> {
     const nextHeaders = require('next/headers')
     const cookieStore = nextHeaders.cookies()
 
+    // Debug cookies
+    const allCookieNames = cookieStore.getAll().map((c: any) => c.name)
+    console.log('[getServerUser] Cookie names present:', allCookieNames.join(', '))
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
     const supabase = createServerClient(supabaseUrl, supabaseKey, {
       cookies: {
         get(name: string) {
-          return cookieStore.get(name)?.value
+          const val = cookieStore.get(name)?.value
+          if (name.includes('supabase') || name.includes('sb-')) {
+            console.log(`[getServerUser] Read cookie ${name}:`, val ? 'FOUND' : 'MISSING')
+          }
+          return val
         },
         set(name: string, value: string, options: any) {
-          try {
-            cookieStore.set({ name, value, ...options })
-          } catch (e) {
-            // Read-only environment, ignore
-          }
+          try { cookieStore.set({ name, value, ...options }) } catch (e) { }
         },
         remove(name: string, options: any) {
-          try {
-            cookieStore.set({ name, value: '', ...options })
-          } catch (e) {
-            // Read-only environment, ignore
-          }
+          try { cookieStore.set({ name, value: '', ...options }) } catch (e) { }
         },
       },
     })
 
     const { data: { user }, error } = await supabase.auth.getUser()
 
-    if (error || !user) {
+    if (error) {
+      console.error('[getServerUser] supabase.auth.getUser() returned error:', error.message)
       return null
     }
+
+    if (!user) {
+      console.log('[getServerUser] supabase.auth.getUser() returned null user')
+      return null
+    }
+
+    console.log('[getServerUser] Valid Supabase user found:', user.id)
 
     // Try database first, fallback to Supabase-only auth
     try {
