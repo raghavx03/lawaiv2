@@ -22,8 +22,8 @@ export async function getServerUser(): Promise<AuthUser | null> {
       return createDevUser()
     }
 
-    const { cookies } = await import('next/headers')
-    const cookieStore = await cookies()
+    const nextHeaders = require('next/headers')
+    const cookieStore = nextHeaders.cookies()
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
