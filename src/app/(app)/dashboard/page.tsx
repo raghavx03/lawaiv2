@@ -213,7 +213,7 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-page-enter">
       <Toaster position="top-right" />
 
       {/* Resume Last Case Prompt */}
@@ -301,15 +301,16 @@ export default function DashboardPage() {
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((stat) => (
-          <StatCard
-            key={stat.label}
-            label={stat.label}
-            value={statsLoading ? '...' : stat.value}
-            icon={stat.icon}
-            color={stat.color}
-            trend={stat.trend}
-            loading={statsLoading}
-          />
+          <div className="stagger-item" key={stat.label}>
+            <StatCard
+              label={stat.label}
+              value={statsLoading ? '...' : stat.value}
+              icon={stat.icon}
+              color={stat.color}
+              trend={stat.trend}
+              loading={statsLoading}
+            />
+          </div>
         ))}
       </div>
 
@@ -339,14 +340,14 @@ export default function DashboardPage() {
 
             if (action.action) {
               return (
-                <div key={action.name} onClick={action.action}>
+                <div key={action.name} onClick={action.action} className="stagger-item">
                   {content}
                 </div>
               )
             }
 
             return (
-              <Link key={action.name} href={action.href!}>
+              <Link key={action.name} href={action.href!} className="stagger-item">
                 {content}
               </Link>
             )

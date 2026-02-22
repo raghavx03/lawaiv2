@@ -144,7 +144,7 @@ export const Sidebar = memo(function Sidebar({ isOpen: mobileOpen = false, onClo
                 key={item.name}
                 href={item.href}
                 className={`
-                  group flex items-center justify-between px-3 py-3 rounded-lg transition-all duration-200 relative
+                  group flex items-center justify-between px-3 py-3 rounded-lg transition-all duration-200 relative stagger-item
                   ${item.isActive
                     ? 'bg-black text-white dark:bg-white dark:text-black shadow-lg shadow-black/10 dark:shadow-white/10'
                     : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-black dark:hover:text-white'

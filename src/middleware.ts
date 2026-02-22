@@ -27,8 +27,8 @@ export async function middleware(request: NextRequest) {
       getAll() {
         return request.cookies.getAll()
       },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) =>
+      setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
+        cookiesToSet.forEach(({ name, value }: { name: string; value: string }) =>
           request.cookies.set(name, value)
         )
         response = NextResponse.next({
@@ -40,8 +40,8 @@ export async function middleware(request: NextRequest) {
         response.headers.set('X-XSS-Protection', '1; mode=block')
         response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
 
-        cookiesToSet.forEach(({ name, value, options }) =>
-          response.cookies.set(name, value, options)
+        cookiesToSet.forEach(({ name, value, options }: { name: string; value: string; options?: Record<string, unknown> }) =>
+          response.cookies.set(name, value, options as any)
         )
       },
     },
