@@ -3,6 +3,8 @@ import { canPerformQuery, incrementQueryCount, getRemainingQueries } from '@/lib
 import { analyzeContractRisk } from '@/lib/contract-risk-analyzer'
 import { prisma } from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()

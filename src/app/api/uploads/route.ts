@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { prepareDocumentForRAG } from '@/lib/embeddings'
 import { storeDocumentChunks } from '@/lib/vector-db'
 
+export const dynamic = 'force-dynamic'
+
 // Extract text from PDF using simple parsing
 async function extractTextFromPDF(buffer: Buffer): Promise<string> {
   try {

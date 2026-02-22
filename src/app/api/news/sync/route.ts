@@ -2,15 +2,17 @@ import { NextResponse } from 'next/server'
 
 import { prisma } from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST() {
   try {
     console.log('Manual news sync triggered')
-    
+
     // Check database connection
     if (!prisma) {
       return NextResponse.json({ error: 'Database service unavailable' }, { status: 503 })
     }
-    
+
     // Get a sample user for storing news
     const sampleUser = await prisma.userApp.findFirst()
     if (!sampleUser) {
@@ -19,14 +21,14 @@ export async function POST() {
 
     const savedCount = 0 // Placeholder for news sync
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
       message: `Synced ${savedCount} new articles`,
-      savedCount 
+      savedCount
     })
   } catch (error) {
     console.error('News sync error:', error)
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'News sync failed',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })
