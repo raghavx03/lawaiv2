@@ -21,28 +21,37 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
-  // Create Supabase client with cookie handling
+  // Create Supabase client with OLD cookie API (compatible with @supabase/ssr@0.1.0)
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
-      getAll() {
-        return request.cookies.getAll()
+      get(name: string) {
+        return request.cookies.get(name)?.value
       },
-      setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
-        cookiesToSet.forEach(({ name, value }: { name: string; value: string }) =>
-          request.cookies.set(name, value)
-        )
+      set(name: string, value: string, options: any) {
+        // Update the request cookies
+        request.cookies.set(name, value)
+        // Create new response with updated cookies
         response = NextResponse.next({
           request: { headers: request.headers },
         })
-        // Re-apply security headers after creating new response
+        // Re-apply security headers
         response.headers.set('X-Content-Type-Options', 'nosniff')
         response.headers.set('X-Frame-Options', 'DENY')
         response.headers.set('X-XSS-Protection', '1; mode=block')
         response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
-
-        cookiesToSet.forEach(({ name, value, options }: { name: string; value: string; options?: Record<string, unknown> }) =>
-          response.cookies.set(name, value, options as any)
-        )
+        // Set cookie on response
+        response.cookies.set(name, value, options)
+      },
+      remove(name: string, options: any) {
+        request.cookies.set(name, '')
+        response = NextResponse.next({
+          request: { headers: request.headers },
+        })
+        response.headers.set('X-Content-Type-Options', 'nosniff')
+        response.headers.set('X-Frame-Options', 'DENY')
+        response.headers.set('X-XSS-Protection', '1; mode=block')
+        response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+        response.cookies.set(name, '', options)
       },
     },
   })

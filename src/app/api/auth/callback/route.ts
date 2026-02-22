@@ -30,40 +30,42 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL('/auth/login?error=no_code', request.url))
     }
 
-    // Track cookies that Supabase sets during exchangeCodeForSession
-    const cookiesToForward: { name: string; value: string; options: any }[] = []
+    // Use the OLD working cookie API (get/set/remove) compatible with @supabase/ssr@0.1.0
     const cookieStore = await cookies()
+
+    // Track cookies set during exchange so we can forward them to the redirect
+    const cookiesToForward: { name: string; value: string; options: any }[] = []
 
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          getAll() {
-            return cookieStore.getAll()
+          get(name: string) {
+            return cookieStore.get(name)?.value
           },
-          setAll(cookiesToSet: { name: string; value: string; options: any }[]) {
+          set(name: string, value: string, options: any) {
             try {
-              cookiesToSet.forEach(({ name, value, options }) => {
-                cookieStore.set(name, value, options as any)
-              })
+              cookieStore.set({ name, value, ...options })
             } catch (e) {
               // Ignore cookie set errors in server component/route handlers
             }
-            // CRITICAL: Also track these so we can forward them on the redirect response
-            cookiesToForward.push(...cookiesToSet)
+            // Track for forwarding onto redirect response
+            cookiesToForward.push({ name, value, options })
+          },
+          remove(name: string, options: any) {
+            try {
+              cookieStore.set({ name, value: '', ...options })
+            } catch (e) {
+              // Ignore cookie remove errors
+            }
+            cookiesToForward.push({ name, value: '', options })
           },
         },
       }
     )
 
     console.log('[AuthCallback] Exchanging code for session')
-    // Debug: log cookie names to verify PKCE code_verifier is present
-    const allCookies = cookieStore.getAll()
-    console.log('[AuthCallback] Cookies present:', allCookies.map(c => c.name).join(', '))
-    const pkCookies = allCookies.filter(c => c.name.includes('code_verifier') || c.name.includes('pkce'))
-    console.log('[AuthCallback] PKCE cookies found:', pkCookies.length, pkCookies.map(c => c.name))
-
     const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
 
     if (exchangeError) {
@@ -107,7 +109,6 @@ export async function GET(request: NextRequest) {
       }, null)
     } catch (dbError) {
       console.warn('[AuthCallback] Database unavailable, user will use fallback auth:', sanitizeForLog((dbError as Error)?.message || 'Unknown error'))
-      // Continue with redirect - user can still access the app with fallback auth
     }
 
     const sanitizedNext = next && next.startsWith('/') && !next.includes('..') && !next.includes('<') && !next.includes('>') ? sanitizeInput(next) : '/dashboard'
@@ -117,9 +118,8 @@ export async function GET(request: NextRequest) {
     const redirectUrl = new URL(sanitizedNext, request.url)
     const response = NextResponse.redirect(redirectUrl)
 
-    // CRITICAL FIX: Forward all session cookies onto the redirect response
-    // Without this, the browser never receives the auth tokens and the middleware
-    // sees the user as unauthenticated, causing an infinite login loop.
+    // CRITICAL: Forward ALL cookies set during exchangeCodeForSession onto the redirect response
+    // Without this, the browser never receives the auth tokens and middleware sees user as unauthenticated
     cookiesToForward.forEach(({ name, value, options }) => {
       response.cookies.set(name, value, options)
     })
