@@ -24,8 +24,18 @@ export default function FounderPage() {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Hero Section */}
         <div className="text-center mb-12">
-          <div className="w-32 h-32 bg-gray-900 rounded-full mx-auto mb-6 flex items-center justify-center">
-            <span className="text-5xl text-white font-bold">RS</span>
+          <div className="w-32 h-32 bg-gray-900 rounded-full mx-auto mb-6 flex items-center justify-center overflow-hidden border-4 border-white shadow-lg relative cursor-pointer group">
+            <img
+              src="/founder.jpg"
+              alt="Raghav Shah"
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+              onError={(e) => {
+                // Fallback to initials if image doesn't exist yet
+                e.currentTarget.style.display = 'none';
+                e.currentTarget.nextElementSibling?.classList.remove('hidden');
+              }}
+            />
+            <span className="text-5xl text-white font-bold hidden absolute">RS</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
             Raghav Shah
@@ -34,26 +44,26 @@ export default function FounderPage() {
             Founder & CEO, LawAI
           </p>
           <div className="flex items-center justify-center gap-4">
-            <a 
-              href="https://ragspro.com" 
-              target="_blank" 
+            <a
+              href="https://ragspro.com"
+              target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 transition-colors"
             >
               <Globe className="h-4 w-4" />
               ragspro.com
             </a>
-            <a 
-              href="https://linkedin.com/in/raghavshah" 
-              target="_blank" 
+            <a
+              href="https://www.linkedin.com/in/ragspro"
+              target="_blank"
               rel="noopener noreferrer"
               className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 transition-colors"
             >
               <Linkedin className="h-5 w-5" />
             </a>
-            <a 
-              href="https://twitter.com/raghavshah" 
-              target="_blank" 
+            <a
+              href="https://x.com/ragsproai"
+              target="_blank"
               rel="noopener noreferrer"
               className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 transition-colors"
             >
@@ -96,9 +106,9 @@ export default function FounderPage() {
               <p className="text-gray-600 mb-4">
                 RAGSPRO is a full-service digital agency founded by Raghav Shah. We specialize in building custom software solutions, web applications, mobile apps, and AI-powered products for businesses across industries.
               </p>
-              <a 
-                href="https://ragspro.com" 
-                target="_blank" 
+              <a
+                href="https://ragspro.com"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-gray-900 text-white font-medium rounded-xl hover:bg-gray-800 transition-colors"
               >
@@ -133,16 +143,16 @@ export default function FounderPage() {
             Interested in partnering with LawAI or have questions? Reach out directly.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a 
-              href="mailto:raghav@ragspro.com"
+            <a
+              href="mailto:ragsproai@gmail.com"
               className="flex items-center gap-2 px-6 py-3 bg-white text-gray-900 font-medium rounded-xl hover:bg-gray-100 transition-colors"
             >
               <Mail className="h-5 w-5" />
-              raghav@ragspro.com
+              ragsproai@gmail.com
             </a>
-            <a 
-              href="https://ragspro.com" 
-              target="_blank" 
+            <a
+              href="https://ragspro.com"
+              target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 px-6 py-3 border border-white text-white font-medium rounded-xl hover:bg-white/10 transition-colors"
             >

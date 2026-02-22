@@ -66,7 +66,7 @@ export function LegalFooter() {
             </p>
             <div className="flex items-center gap-3">
               <a
-                href="https://twitter.com/rags_pro"
+                href="https://x.com/ragsproai"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-lg flex items-center justify-center transition-colors"
@@ -77,7 +77,7 @@ export function LegalFooter() {
                 </svg>
               </a>
               <a
-                href="https://linkedin.com/company/ragspro"
+                href="https://www.linkedin.com/in/ragspro"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-lg flex items-center justify-center transition-colors"
@@ -88,7 +88,7 @@ export function LegalFooter() {
                 </svg>
               </a>
               <a
-                href="mailto:contact@ragspro.com"
+                href="mailto:ragsproai@gmail.com"
                 className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-lg flex items-center justify-center transition-colors"
                 aria-label="Email"
               >

@@ -30,7 +30,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL('/auth/login?error=no_code', request.url))
     }
 
+    // Track cookies that Supabase sets during exchangeCodeForSession
+    const cookiesToForward: { name: string; value: string; options: any }[] = []
     const cookieStore = await cookies()
+
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -47,6 +50,8 @@ export async function GET(request: NextRequest) {
             } catch (e) {
               // Ignore cookie set errors in server component/route handlers
             }
+            // CRITICAL: Also track these so we can forward them on the redirect response
+            cookiesToForward.push(...cookiesToSet)
           },
         },
       }
@@ -102,13 +107,20 @@ export async function GET(request: NextRequest) {
     const sanitizedNext = next && next.startsWith('/') && !next.includes('..') && !next.includes('<') && !next.includes('>') ? sanitizeInput(next) : '/dashboard'
     console.log('[AuthCallback] Redirecting to:', sanitizeForLog(sanitizedNext))
 
-    // Create redirect response with history replacement to avoid Google OAuth in browser history
+    // Create redirect response
     const redirectUrl = new URL(sanitizedNext, request.url)
     const response = NextResponse.redirect(redirectUrl)
 
-    // Add header to indicate this should replace history entry
+    // CRITICAL FIX: Forward all session cookies onto the redirect response
+    // Without this, the browser never receives the auth tokens and the middleware
+    // sees the user as unauthenticated, causing an infinite login loop.
+    cookiesToForward.forEach(({ name, value, options }) => {
+      response.cookies.set(name, value, options)
+    })
+
     response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
 
+    console.log('[AuthCallback] Forwarding', cookiesToForward.length, 'cookies on redirect response')
     return response
   } catch (error) {
     console.error('[AuthCallback] Critical error:', sanitizeForLog(error))

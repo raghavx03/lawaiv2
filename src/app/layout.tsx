@@ -57,8 +57,8 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'LAW.AI - #1 AI Legal Assistant for Indian Lawyers',
     description: 'India\'s most advanced AI-powered legal assistant. Draft documents, research case laws, track court cases. 7-day free trial.',
-    creator: '@lawai_india',
-    site: '@lawai_india',
+    creator: '@ragsproai',
+    site: '@ragsproai',
   },
   manifest: '/manifest.json',
   icons: {
@@ -140,7 +140,7 @@ const organizationJsonLd = {
   founder: { '@type': 'Person', name: 'Raghav Shah', url: 'https://ragspro.com', jobTitle: 'Founder & CEO' },
   address: { '@type': 'PostalAddress', addressCountry: 'IN', addressRegion: 'India' },
   contactPoint: { '@type': 'ContactPoint', contactType: 'customer service', email: 'ragsproai@gmail.com', availableLanguage: ['English', 'Hindi'] },
-  sameAs: ['https://twitter.com/lawai_india', 'https://linkedin.com/company/lawai-india', 'https://facebook.com/lawai.india'],
+  sameAs: ['https://x.com/ragsproai', 'https://www.linkedin.com/in/ragspro'],
   slogan: 'AI-Powered Legal Excellence'
 }
 

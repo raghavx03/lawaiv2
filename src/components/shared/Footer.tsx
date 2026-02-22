@@ -20,10 +20,10 @@ export function Footer() {
               India's #1 AI-powered legal assistant for lawyers. Trusted by 10,000+ advocates.
             </p>
             <div className="flex gap-3">
-              <a href="https://twitter.com/lawai_india" target="_blank" rel="noopener noreferrer" className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+              <a href="https://x.com/ragsproai" target="_blank" rel="noopener noreferrer" className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
                 <Twitter className="h-4 w-4 text-gray-600" />
               </a>
-              <a href="https://linkedin.com/company/lawai" target="_blank" rel="noopener noreferrer" className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+              <a href="https://www.linkedin.com/in/ragspro" target="_blank" rel="noopener noreferrer" className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
                 <Linkedin className="h-4 w-4 text-gray-600" />
               </a>
             </div>
