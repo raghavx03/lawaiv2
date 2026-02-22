@@ -23,11 +23,11 @@ export async function getServerUser(): Promise<AuthUser | null> {
     }
 
     const nextHeaders = require('next/headers')
-    const cookieStore = nextHeaders.cookies()
+    const headersList = nextHeaders.headers()
+    const cookieHeader = headersList.get('cookie') || ''
 
     // Debug cookies
-    const allCookieNames = cookieStore.getAll().map((c: any) => c.name)
-    console.log('[getServerUser] Cookie names present:', allCookieNames.join(', '))
+    console.log('[getServerUser] Cookie header snippet:', cookieHeader.substring(0, 50) + '...')
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -35,18 +35,15 @@ export async function getServerUser(): Promise<AuthUser | null> {
     const supabase = createServerClient(supabaseUrl, supabaseKey, {
       cookies: {
         get(name: string) {
-          const val = cookieStore.get(name)?.value
+          const match = cookieHeader.match(new RegExp(`(^| )${name}=([^;]+)`))
+          const val = match ? decodeURIComponent(match[2]) : undefined
           if (name.includes('supabase') || name.includes('sb-')) {
-            console.log(`[getServerUser] Read cookie ${name}:`, val ? 'FOUND' : 'MISSING')
+            console.log(`[getServerUser] Read cookie ${name} from headers:`, val ? 'FOUND' : 'MISSING')
           }
           return val
         },
-        set(name: string, value: string, options: any) {
-          try { cookieStore.set({ name, value, ...options }) } catch (e) { }
-        },
-        remove(name: string, options: any) {
-          try { cookieStore.set({ name, value: '', ...options }) } catch (e) { }
-        },
+        set(name: string, value: string, options: any) { },
+        remove(name: string, options: any) { },
       },
     })
 
